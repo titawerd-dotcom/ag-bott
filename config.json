@@ -1,0 +1,25 @@
+{
+  "prefix": "/",
+  "defaultColor": "#5865F2",
+  "successColor": "#57F287",
+  "errorColor": "#ED4245",
+  "warningColor": "#FEE75C",
+  "ticketCategoryName": "TICKETS",
+  "emojis": {
+    "success": "✅",
+    "error": "❌",
+    "warning": "⚠️",
+    "ticket": "🎫",
+    "lock": "🔒",
+    "unlock": "🔓",
+    "shield": "🛡️",
+    "welcome": "👋",
+    "goodbye": "🚪",
+    "tools": "⚙️",
+    "user": "👤",
+    "server": "🌐",
+    "mail": "📩",
+    "trash": "🗑️",
+    "claim": "📌"
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "name": "discord-master-bot",
+  "version": "1.0.0",
+  "description": "Full-featured Discord Bot with Moderation, Welcome/Goodbye, Ticket System, Embed Builder, and Utilities",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js"
+  },
+  "keywords": [
+    "discord",
+    "bot",
+    "discordjs",
+    "moderation",
+    "ticket",
+    "welcome",
+    "embed"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "discord.js": "^14.18.0",
+    "dotenv": "^16.4.7",
+    "express": "^5.2.1"
+  }
+}

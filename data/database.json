@@ -1,0 +1,61 @@
+{
+  "guilds": {
+    "1474907174558765177": {
+      "welcome": {
+        "enabled": true,
+        "channelId": "1474911873706229962",
+        "message": "Welcome {user} to **{server}**! You are member #{memberCount}.",
+        "isEmbed": true,
+        "color": "#e09900",
+        "image": "https://cdn.discordapp.com/attachments/1517801718669119542/1520731875885453343/6290da3f-4b87-44c2-bed5-dae5d55219db.jpg?ex=6a8ac5ed&is=6a89746d&hm=556830d446ea6b93a9cc1ffd10b8f260b6f65917a20265d01dfc2200387b112e&"
+      },
+      "goodbye": {
+        "enabled": false,
+        "channelId": null,
+        "message": "{user} has left the server. We now have {memberCount} members.",
+        "isEmbed": true,
+        "color": "#ED4245"
+      },
+      "autorole": {
+        "enabled": false,
+        "roleId": null
+      },
+      "ticket": {
+        "categoryId": null,
+        "staffRoleId": null,
+        "counter": 0
+      },
+      "warns": {},
+      "tickets": {},
+      "automod": {
+        "enabled": false,
+        "antiInvite": true,
+        "antiLinks": false,
+        "antiCaps": false,
+        "antiSpam": true,
+        "badWords": [
+          "discord.gg/",
+          "badword1",
+          "scam"
+        ],
+        "punishment": "delete",
+        "logChannelId": null
+      },
+      "leveling": {
+        "enabled": true,
+        "channelId": null,
+        "message": "🎉 Congratulations {user}! You just leveled up to **Level {level}**!",
+        "users": {
+          "1526968069040377966": {
+            "xp": 16,
+            "level": 0,
+            "lastMessageTimestamp": 1787471988661
+          }
+        }
+      },
+      "giveaways": {},
+      "reactionRoles": {},
+      "backups": {}
+    }
+  }
+}

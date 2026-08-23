@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Discord Bot Web Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="app-layout">
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="bot-brand">
+          <div class="avatar-wrapper">
+            <img id="bot-avatar" src="https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0a6a49cf127bf92de1e2_icon_clyde_blurple_RGB.png" alt="Bot Avatar" class="bot-img">
+            <span class="status-indicator online"></span>
+          </div>
+          <div class="bot-info-text">
+            <h2 id="bot-name">AG System</h2>
+            <span class="bot-badge">v14 • READY</span>
+          </div>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section-title">COMMAND CENTER</div>
+        <button class="nav-item active" data-tab="commands-hub">
+          <span class="icon">⚡</span> Command Control Hub
+        </button>
+
+        <div class="nav-section-title mt-2">CORE MODULES</div>
+        <button class="nav-item" data-tab="overview">
+          <span class="icon">📊</span> Overview & Stats
+        </button>
+        <button class="nav-item" data-tab="embed-studio">
+          <span class="icon">🎨</span> Embed & Text Studio
+        </button>
+        <button class="nav-item" data-tab="welcome-studio">
+          <span class="icon">👋</span> Welcome & Goodbye
+        </button>
+        <button class="nav-item" data-tab="tickets">
+          <span class="icon">🎫</span> Support Tickets
+        </button>
+        <button class="nav-item" data-tab="moderation">
+          <span class="icon">🛡️</span> Warnings & Logs
+        </button>
+
+        <div class="nav-section-title mt-2">ADVANCED SYSTEMS</div>
+        <button class="nav-item" data-tab="automod">
+          <span class="icon">🤖</span> AutoMod Protection
+        </button>
+        <button class="nav-item" data-tab="leveling">
+          <span class="icon">⭐</span> Leveling & Ranks
+        </button>
+        <button class="nav-item" data-tab="giveaways">
+          <span class="icon">🎉</span> Giveaways Studio
+        </button>
+        <button class="nav-item" data-tab="button-roles">
+          <span class="icon">🎭</span> Button Roles
+        </button>
+        <button class="nav-item" data-tab="backups">
+          <span class="icon">💾</span> Server Backups
+        </button>
+        <button class="nav-item" data-tab="console-logs">
+          <span class="icon">💻</span> Live Console Logs
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="server-select-box">
+          <label for="guild-select">Active Server:</label>
+          <select id="guild-select" class="custom-select">
+            <option value="">Loading servers...</option>
+          </select>
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="main-wrapper">
+      <!-- TOPBAR -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <h1 id="page-title">Command Control Hub</h1>
+          <p id="page-subtitle">Execute any Discord command directly from the web interface</p>
+        </div>
+        <div class="topbar-right">
+          <div class="stat-pill">
+            <span class="pulse-dot"></span>
+            <span id="ping-badge">-- ms</span>
+          </div>
+          <div class="stat-pill secondary">
+            <span>⏱️ Uptime: <strong id="uptime-badge">--</strong></span>
+          </div>
+        </div>
+      </header>
+
+      <!-- TAB: COMMAND CONTROL HUB -->
+      <section id="tab-commands-hub" class="tab-content active">
+        <!-- 1. MODERATION OPERATIONS -->
+        <div class="panel">
+          <div class="panel-header">
+            <h3>🛡️ Member Moderation Actions</h3>
+          </div>
+          <div class="panel-body">
+            <div class="actions-grid">
+              <!-- BAN CARD -->
+              <div class="action-card">
+                <div class="action-card-header">🔨 Ban Member (/ban)</div>
+                <form id="action-ban-form">
+                  <input type="text" class="custom-input mb-2" id="action-ban-user" placeholder="User ID / Mention" required>
+                  <input type="text" class="custom-input mb-2" id="action-ban-reason" placeholder="Reason (Optional)">
+                  <select class="custom-select mb-2" id="action-ban-days">
+                    <option value="0">Don't delete messages</option>
+                    <option value="1">Delete past 24 hours</option>
+                    <option value="7">Delete past 7 days</option>
+                  </select>
+                  <button type="submit" class="btn btn-danger btn-block btn-sm">Execute Ban</button>
+                </form>
+              </div>
+
+              <!-- UNBAN CARD -->
+              <div class="action-card">
+                <div class="action-card-header">🔓 Unban Member (/unban)</div>
+                <form id="action-unban-form">
+                  <input type="text" class="custom-input mb-2" id="action-unban-user" placeholder="User ID" required>
+                  <input type="text" class="custom-input mb-2" id="action-unban-reason" placeholder="Reason (Optional)">
+                  <button type="submit" class="btn btn-success btn-block btn-sm">Execute Unban</button>
+                </form>
+              </div>
+
+              <!-- KICK CARD -->
+              <div class="action-card">
+                <div class="action-card-header">👢 Kick Member (/kick)</div>
+                <form id="action-kick-form">
+                  <input type="text" class="custom-input mb-2" id="action-kick-user" placeholder="User ID" required>
+                  <input type="text" class="custom-input mb-2" id="action-kick-reason" placeholder="Reason (Optional)">
+                  <button type="submit" class="btn btn-danger btn-block btn-sm">Execute Kick</button>
+                </form>
+              </div>
+
+              <!-- TIMEOUT CARD -->
+              <div class="action-card">
+                <div class="action-card-header">⏱️ Timeout / Mute (/timeout)</div>
+                <form id="action-timeout-form">
+                  <input type="text" class="custom-input mb-2" id="action-timeout-user" placeholder="User ID" required>
+                  <select class="custom-select mb-2" id="action-timeout-duration">
+                    <option value="1">1 Minute</option>
+                    <option value="5" selected>5 Minutes</option>
+                    <option value="10">10 Minutes</option>
+                    <option value="60">1 Hour</option>
+                    <option value="1440">1 Day</option>
+                    <option value="10080">1 Week</option>
+                  </select>
+                  <input type="text" class="custom-input mb-2" id="action-timeout-reason" placeholder="Reason (Optional)">
+                  <div class="btn-group-row">
+                    <button type="submit" class="btn btn-warning btn-sm flex-1">Apply Timeout</button>
+                    <button type="button" class="btn btn-outline btn-sm" id="btn-untimeout-action">Remove</button>
+                  </div>
+                </form>
+              </div>
+
+              <!-- WARN CARD -->
+              <div class="action-card">
+                <div class="action-card-header">⚠️ Issue Warn (/warn)</div>
+                <form id="action-warn-form">
+                  <input type="text" class="custom-input mb-2" id="action-warn-user" placeholder="User ID" required>
+                  <input type="text" class="custom-input mb-2" id="action-warn-reason" placeholder="Reason for warning" required>
+                  <button type="submit" class="btn btn-warning btn-block btn-sm">Issue Warning</button>
+                </form>
+              </div>
+
+              <!-- ROLE ASSIGN CARD -->
+              <div class="action-card">
+                <div class="action-card-header">🎭 Manage Role (/role)</div>
+                <form id="action-role-form">
+                  <input type="text" class="custom-input mb-2" id="action-role-user" placeholder="User ID" required>
+                  <select class="custom-select mb-2" id="action-role-select" required></select>
+                  <div class="btn-group-row">
+                    <button type="button" class="btn btn-success btn-sm flex-1" id="btn-role-add">Add Role</button>
+                    <button type="button" class="btn btn-danger btn-sm flex-1" id="btn-role-remove">Remove Role</button>
+                  </div>
+                </form>
+              </div>
+
+              <!-- NICKNAME CARD -->
+              <div class="action-card">
+                <div class="action-card-header">✏️ Change Nick (/nick)</div>
+                <form id="action-nick-form">
+                  <input type="text" class="custom-input mb-2" id="action-nick-user" placeholder="User ID" required>
+                  <input type="text" class="custom-input mb-2" id="action-nick-val" placeholder="New Nickname (Leave blank to reset)">
+                  <button type="submit" class="btn btn-primary btn-block btn-sm">Update Nickname</button>
+                </form>
+              </div>
+
+              <!-- SET XP CARD -->
+              <div class="action-card">
+                <div class="action-card-header">⭐ Set Member XP (/setxp)</div>
+                <form id="action-setxp-form">
+                  <input type="text" class="custom-input mb-2" id="action-xp-user" placeholder="User ID" required>
+                  <div class="form-row mb-2">
+                    <input type="number" class="custom-input flex-1" id="action-xp-val" placeholder="XP" min="0" required>
+                    <input type="number" class="custom-input flex-1" id="action-level-val" placeholder="Level (Opt)" min="0">
+                  </div>
+                  <button type="submit" class="btn btn-primary btn-block btn-sm">Set XP & Level</button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. CHANNEL & SERVER OPERATIONS -->
+        <div class="panel">
+          <div class="panel-header">
+            <h3>💬 Channel & Content Operations</h3>
+          </div>
+          <div class="panel-body">
+            <div class="actions-grid">
+              <!-- PURGE CARD -->
+              <div class="action-card">
+                <div class="action-card-header">🗑️ Purge Messages (/purge)</div>
+                <form id="action-purge-form">
+                  <select class="custom-select mb-2" id="action-purge-channel" required></select>
+                  <input type="number" class="custom-input mb-2" id="action-purge-amount" value="20" min="1" max="100" placeholder="Amount (1-100)" required>
+                  <button type="submit" class="btn btn-danger btn-block btn-sm">Purge Messages</button>
+                </form>
+              </div>
+
+              <!-- LOCK / UNLOCK CARD -->
+              <div class="action-card">
+                <div class="action-card-header">🔒 Channel Lock / Unlock (/lock)</div>
+                <form id="action-lock-form">
+                  <select class="custom-select mb-2" id="action-lock-channel" required></select>
+                  <input type="text" class="custom-input mb-2" id="action-lock-reason" placeholder="Reason (Optional)">
+                  <div class="btn-group-row">
+                    <button type="button" class="btn btn-danger btn-sm flex-1" id="btn-lock-channel">🔒 Lock</button>
+                    <button type="button" class="btn btn-success btn-sm flex-1" id="btn-unlock-channel">🔓 Unlock</button>
+                  </div>
+                </form>
+              </div>
+
+              <!-- SLOWMODE CARD -->
+              <div class="action-card">
+                <div class="action-card-header">⏱️ Slowmode (/slowmode)</div>
+                <form id="action-slowmode-form">
+                  <select class="custom-select mb-2" id="action-slowmode-channel" required></select>
+                  <select class="custom-select mb-2" id="action-slowmode-seconds">
+                    <option value="0">Off (0s)</option>
+                    <option value="5">5 Seconds</option>
+                    <option value="10">10 Seconds</option>
+                    <option value="30">30 Seconds</option>
+                    <option value="60">1 Minute</option>
+                    <option value="300">5 Minutes</option>
+                  </select>
+                  <button type="submit" class="btn btn-primary btn-block btn-sm">Set Slowmode</button>
+                </form>
+              </div>
+
+              <!-- NUKE CARD -->
+              <div class="action-card">
+                <div class="action-card-header">💣 Nuke Channel (/nuke)</div>
+                <form id="action-nuke-form">
+                  <select class="custom-select mb-2" id="action-nuke-channel" required></select>
+                  <button type="submit" class="btn btn-danger btn-block btn-sm">💣 Nuke & Recreate</button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. BROADCASTING, POLLS & UTILITIES -->
+        <div class="panel">
+          <div class="panel-header">
+            <h3>📢 Broadcasts, Polls & Deployments</h3>
+          </div>
+          <div class="panel-body">
+            <div class="dashboard-grid">
+              <!-- POLL CREATOR -->
+              <div class="action-card">
+                <div class="action-card-header">📊 Create Poll (/poll)</div>
+                <form id="action-poll-form">
+                  <select class="custom-select mb-2" id="action-poll-channel" required></select>
+                  <input type="text" class="custom-input mb-2" id="action-poll-question" placeholder="Poll Question / Topic" required>
+                  <input type="text" class="custom-input mb-2" id="action-poll-options" placeholder="Options separated by comma (Leave blank for Yes/No)">
+                  <button type="submit" class="btn btn-primary btn-block btn-sm">Post Poll</button>
+                </form>
+              </div>
+
+              <!-- ANNOUNCEMENT CREATOR -->
+              <div class="action-card">
+                <div class="action-card-header">📢 Post Announcement (/announce)</div>
+                <form id="action-announce-form">
+                  <select class="custom-select mb-2" id="action-announce-channel" required></select>
+                  <input type="text" class="custom-input mb-2" id="action-announce-title" placeholder="Announcement Title" required>
+                  <textarea class="custom-textarea mb-2" id="action-announce-desc" rows="2" placeholder="Announcement Body" required></textarea>
+                  <div class="form-row mb-2">
+                    <select class="custom-select flex-1" id="action-announce-ping">
+                      <option value="none">No Mention</option>
+                      <option value="@everyone">@everyone</option>
+                      <option value="@here">@here</option>
+                    </select>
+                    <input type="url" class="custom-input flex-1" id="action-announce-img" placeholder="Banner URL (Opt)">
+                  </div>
+                  <button type="submit" class="btn btn-success btn-block btn-sm">Publish Announcement</button>
+                </form>
+              </div>
+
+              <!-- DEPLOY TICKET PANEL -->
+              <div class="action-card">
+                <div class="action-card-header">📩 Deploy Ticket Panel (/ticket-setup)</div>
+                <form id="action-ticket-deploy-form">
+                  <select class="custom-select mb-2" id="action-ticket-channel" required></select>
+                  <select class="custom-select mb-2" id="action-ticket-category">
+                    <option value="">-- No Category (Root) --</option>
+                  </select>
+                  <select class="custom-select mb-2" id="action-ticket-staffrole">
+                    <option value="">-- Administrator Only --</option>
+                  </select>
+                  <input type="text" class="custom-input mb-2" id="action-ticket-title" placeholder="Panel Title (Default: Support Desk)">
+                  <button type="submit" class="btn btn-primary btn-block btn-sm">Deploy Ticket Panel</button>
+                </form>
+              </div>
+
+              <!-- TEST WELCOME / GOODBYE -->
+              <div class="action-card">
+                <div class="action-card-header">👋 Test Greetings (/testwelcome & /testgoodbye)</div>
+                <div class="mt-2">
+                  <p class="text-muted mb-2" style="font-size: 0.82rem;">Dispatch a simulated test greeting message to verify your settings:</p>
+                  <div class="btn-group-row">
+                    <button type="button" class="btn btn-success btn-sm flex-1" id="btn-test-welcome-action">Test Welcome</button>
+                    <button type="button" class="btn btn-danger btn-sm flex-1" id="btn-test-goodbye-action">Test Goodbye</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB: OVERVIEW -->
+      <section id="tab-overview" class="tab-content">
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <div class="metric-icon-box blurple">🌐</div>
+            <div class="metric-details">
+              <span class="metric-title">Total Servers</span>
+              <h3 class="metric-value" id="stat-guilds">0</h3>
+            </div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-icon-box green">👥</div>
+            <div class="metric-details">
+              <span class="metric-title">Total Members</span>
+              <h3 class="metric-value" id="stat-users">0</h3>
+            </div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-icon-box amber">🎫</div>
+            <div class="metric-details">
+              <span class="metric-title">Tracked Tickets</span>
+              <h3 class="metric-value" id="stat-tickets">0</h3>
+            </div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-icon-box red">🛡️</div>
+            <div class="metric-details">
+              <span class="metric-title">Issued Warnings</span>
+              <h3 class="metric-value" id="stat-warns">0</h3>
+            </div>
+          </div>
+        </div>
+
+        <div class="dashboard-grid">
+          <div class="panel">
+            <div class="panel-header">
+              <h3>🌐 Selected Server Information</h3>
+            </div>
+            <div class="panel-body">
+              <div class="guild-hero">
+                <img id="current-guild-icon" src="https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0a6a49cf127bf92de1e2_icon_clyde_blurple_RGB.png" alt="Guild Icon" class="guild-hero-img">
+                <div>
+                  <h2 id="current-guild-name">No Server Selected</h2>
+                  <p class="text-muted" id="current-guild-id">ID: --</p>
+                  <span class="badge" id="current-guild-members">0 Members</span>
+                </div>
+              </div>
+              <div class="info-list">
+                <div class="info-row">
+                  <span>Available Text Channels:</span>
+                  <strong id="channel-count-badge">0 channels</strong>
+                </div>
+                <div class="info-row">
+                  <span>Server Roles:</span>
+                  <strong id="role-count-badge">0 roles</strong>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-header">
+              <h3>⚡ System Resource Status</h3>
+            </div>
+            <div class="panel-body">
+              <div class="progress-block">
+                <div class="progress-label">
+                  <span>Node.js Memory (RAM)</span>
+                  <span id="ram-text">-- MB</span>
+                </div>
+                <div class="progress-bar-bg">
+                  <div class="progress-bar-fill" id="ram-progress" style="width: 15%;"></div>
+                </div>
+              </div>
+              <div class="system-specs">
+                <div class="spec-item">
+                  <span class="text-muted">Discord.js</span>
+                  <strong>v14.18.0</strong>
+                </div>
+                <div class="spec-item">
+                  <span class="text-muted">WebSocket Latency</span>
+                  <strong id="spec-ping">-- ms</strong>
+                </div>
+                <div class="spec-item">
+                  <span class="text-muted">Gateway Status</span>
+                  <span class="badge success">CONNECTED</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB: EMBED STUDIO -->
+      <section id="tab-embed-studio" class="tab-content">
+        <div class="studio-grid">
+          <div class="panel">
+            <div class="panel-header">
+              <h3>🛠️ Embed & Plain Text Creator</h3>
+              <div class="toggle-group">
+                <button type="button" class="btn-toggle active" id="mode-embed-btn">Rich Embed</button>
+                <button type="button" class="btn-toggle" id="mode-text-btn">Plain Text</button>
+              </div>
+            </div>
+            <div class="panel-body">
+              <form id="embed-form">
+                <div class="form-group">
+                  <label for="embed-target-channel">Target Channel *</label>
+                  <select id="embed-target-channel" class="custom-select" required></select>
+                </div>
+
+                <div id="embed-only-fields">
+                  <div class="form-row">
+                    <div class="form-group flex-1">
+                      <label for="input-embed-title">Embed Title</label>
+                      <input type="text" id="input-embed-title" class="custom-input" placeholder="e.g. Announcement / Rules">
+                    </div>
+                    <div class="form-group">
+                      <label for="input-embed-color">Color</label>
+                      <input type="color" id="input-embed-color" class="color-picker-input" value="#5865F2">
+                    </div>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="input-embed-desc">Body / Description *</label>
+                    <textarea id="input-embed-desc" class="custom-textarea" rows="5" placeholder="Supports markdown **bold**, *italic*, [links](url)...">Welcome everyone to our server! Make sure to check the rules and have fun.</textarea>
+                  </div>
+
+                  <div class="form-row">
+                    <div class="form-group flex-1">
+                      <label for="input-embed-image">Banner Image URL</label>
+                      <input type="url" id="input-embed-image" class="custom-input" placeholder="https://example.com/banner.png">
+                    </div>
+                    <div class="form-group flex-1">
+                      <label for="input-embed-thumb">Thumbnail URL</label>
+                      <input type="url" id="input-embed-thumb" class="custom-input" placeholder="https://example.com/thumb.png">
+                    </div>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="input-embed-footer">Footer Text</label>
+                    <input type="text" id="input-embed-footer" class="custom-input" placeholder="e.g. Server Management Team">
+                  </div>
+                </div>
+
+                <div id="text-only-fields" style="display: none;">
+                  <div class="form-group">
+                    <label for="input-plain-text">Plain Text Message *</label>
+                    <textarea id="input-plain-text" class="custom-textarea" rows="6" placeholder="Type plain text message to send as the bot..."></textarea>
+                  </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-block" id="btn-send-message">
+                  🚀 Send Message to Discord Channel
+                </button>
+              </form>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-header">
+              <h3>👀 Live Discord Preview</h3>
+              <span class="badge">REAL-TIME</span>
+            </div>
+            <div class="panel-body discord-preview-container">
+              <div class="discord-message">
+                <img id="preview-bot-avatar" src="https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0a6a49cf127bf92de1e2_icon_clyde_blurple_RGB.png" class="discord-avatar" alt="Avatar">
+                <div class="discord-content">
+                  <div class="discord-author">
+                    <span class="discord-name" id="preview-bot-name">Discord Bot</span>
+                    <span class="discord-bot-tag">APP</span>
+                    <span class="discord-timestamp">Today at 12:00 PM</span>
+                  </div>
+
+                  <div id="preview-plain-text" class="discord-text" style="display: none;">
+                    Type your plain text message on the left...
+                  </div>
+
+                  <div id="preview-embed" class="discord-embed" style="border-left-color: #5865F2;">
+                    <div class="discord-embed-grid">
+                      <div class="discord-embed-main">
+                        <div class="discord-embed-title" id="preview-embed-title">Embed Title</div>
+                        <div class="discord-embed-desc" id="preview-embed-desc">
+                          Welcome everyone to our server! Make sure to check the rules and have fun.
+                        </div>
+                      </div>
+                      <img id="preview-embed-thumb" class="discord-embed-thumb" style="display: none;" src="" alt="thumb">
+                    </div>
+                    <img id="preview-embed-img" class="discord-embed-image" style="display: none;" src="" alt="banner">
+                    <div class="discord-embed-footer" id="preview-embed-footer" style="display: none;">
+                      Footer Text
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB: WELCOME & GOODBYE STUDIO -->
+      <section id="tab-welcome-studio" class="tab-content">
+        <div class="dashboard-grid">
+          <div class="panel">
+            <div class="panel-header">
+              <h3>👋 Welcome Message Settings</h3>
+              <label class="switch">
+                <input type="checkbox" id="welcome-toggle">
+                <span class="slider"></span>
+              </label>
+            </div>
+            <div class="panel-body">
+              <form id="welcome-form">
+                <div class="form-group">
+                  <label for="welcome-channel-select">Welcome Channel</label>
+                  <select id="welcome-channel-select" class="custom-select"></select>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-group flex-1">
+                    <label>Format</label>
+                    <div class="radio-pill-group">
+                      <label class="radio-pill"><input type="radio" name="welcome-format" value="embed" checked> Embed</label>
+                      <label class="radio-pill"><input type="radio" name="welcome-format" value="text"> Plain Text</label>
+                    </div>
+                  </div>
+                  <div class="form-group">
+                    <label>Color</label>
+                    <input type="color" id="welcome-color" class="color-picker-input" value="#57F287">
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label for="welcome-message-input">Welcome Message</label>
+                  <textarea id="welcome-message-input" class="custom-textarea" rows="3">Welcome {user} to **{server}**! You are member #{memberCount}.</textarea>
+                  <div class="placeholder-chips">
+                    <span class="chip" onclick="insertPlaceholder('welcome-message-input', '{user}')">+{user}</span>
+                    <span class="chip" onclick="insertPlaceholder('welcome-message-input', '{userName}')">+{userName}</span>
+                    <span class="chip" onclick="insertPlaceholder('welcome-message-input', '{server}')">+{server}</span>
+                    <span class="chip" onclick="insertPlaceholder('welcome-message-input', '{memberCount}')">+{memberCount}</span>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label for="welcome-image-input">Banner Image URL (Optional)</label>
+                  <input type="url" id="welcome-image-input" class="custom-input" placeholder="https://example.com/welcome-banner.png">
+                </div>
+
+                <button type="submit" class="btn btn-success btn-block">💾 Save Welcome Settings</button>
+              </form>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-header">
+              <h3>🚪 Goodbye & Autorole Settings</h3>
+            </div>
+            <div class="panel-body">
+              <form id="goodbye-form">
+                <div class="section-divider">
+                  <span>GOODBYE CONFIGURATION</span>
+                  <label class="switch">
+                    <input type="checkbox" id="goodbye-toggle">
+                    <span class="slider"></span>
+                  </label>
+                </div>
+
+                <div class="form-group">
+                  <label for="goodbye-channel-select">Goodbye Channel</label>
+                  <select id="goodbye-channel-select" class="custom-select"></select>
+                </div>
+
+                <div class="form-group">
+                  <label for="goodbye-message-input">Goodbye Message</label>
+                  <textarea id="goodbye-message-input" class="custom-textarea" rows="2">{user} has left **{server}**. We now have {memberCount} members.</textarea>
+                </div>
+
+                <button type="submit" class="btn btn-secondary btn-block">💾 Save Goodbye Settings</button>
+              </form>
+
+              <form id="autorole-form" class="mt-4">
+                <div class="section-divider">
+                  <span>AUTOMATIC ROLE (ON JOIN)</span>
+                  <label class="switch">
+                    <input type="checkbox" id="autorole-toggle">
+                    <span class="slider"></span>
+                  </label>
+                </div>
+
+                <div class="form-group">
+                  <label for="autorole-role-select">Select Role to Auto-Assign</label>
+                  <select id="autorole-role-select" class="custom-select"></select>
+                </div>
+
+                <button type="submit" class="btn btn-secondary btn-block">💾 Save Autorole Settings</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB: TICKETS -->
+      <section id="tab-tickets" class="tab-content">
+        <div class="panel">
+          <div class="panel-header">
+            <h3>🎫 Active & Recent Tickets</h3>
+            <button class="btn btn-sm btn-outline" id="refresh-tickets-btn">🔄 Refresh</button>
+          </div>
+          <div class="panel-body">
+            <div class="table-responsive">
+              <table class="custom-table" id="tickets-table">
+                <thead>
+                  <tr>
+                    <th>Ticket #</th>
+                    <th>Opened By</th>
+                    <th>Status</th>
+                    <th>Claimed By</th>
+                    <th>Created Time</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="tickets-table-body">
+                  <tr>
+                    <td colspan="6" class="text-center text-muted">No tickets found for this server.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB: MODERATION -->
+      <section id="tab-moderation" class="tab-content">
+        <div class="panel">
+          <div class="panel-header">
+            <h3>🛡️ Warning Logs & Moderation Records</h3>
+            <button class="btn btn-sm btn-outline" id="refresh-warns-btn">🔄 Refresh</button>
+          </div>
+          <div class="panel-body">
+            <div class="table-responsive">
+              <table class="custom-table" id="warns-table">
+                <thead>
+                  <tr>
+                    <th>User ID</th>
+                    <th>Warnings Count</th>
+                    <th>Latest Reason</th>
+                    <th>Moderator</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="warns-table-body">
+                  <tr>
+                    <td colspan="5" class="text-center text-muted">No warnings recorded on this server.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB: AUTOMOD STUDIO -->
+      <section id="tab-automod" class="tab-content">
+        <div class="panel">
+          <div class="panel-header">
+            <h3>🤖 Automated Server Protection (AutoMod)</h3>
+            <label class="switch">
+              <input type="checkbox" id="automod-toggle">
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div class="panel-body">
+            <form id="automod-form">
+              <div class="dashboard-grid">
+                <div>
+                  <h4 class="form-subtitle">Protection Filters</h4>
+                  <div class="filter-toggle-list">
+                    <label class="filter-item">
+                      <span>🔗 Block Discord Invites (Anti-Invite)</span>
+                      <input type="checkbox" id="automod-anti-invite">
+                    </label>
+                    <label class="filter-item">
+                      <span>🌐 Block External Web Links (Anti-Link)</span>
+                      <input type="checkbox" id="automod-anti-links">
+                    </label>
+                    <label class="filter-item">
+                      <span>📢 Block Mass Mentions (Anti-Spam)</span>
+                      <input type="checkbox" id="automod-anti-spam">
+                    </label>
+                    <label class="filter-item">
+                      <span>🔠 Block ALL CAPS Screaming (Anti-Caps)</span>
+                      <input type="checkbox" id="automod-anti-caps">
+                    </label>
+                  </div>
+                </div>
+
+                <div>
+                  <h4 class="form-subtitle">Enforcement & Logs</h4>
+                  <div class="form-group">
+                    <label for="automod-punishment-select">Action / Punishment</label>
+                    <select id="automod-punishment-select" class="custom-select">
+                      <option value="delete">Delete Message Only</option>
+                      <option value="warn">Delete Message & Warn User</option>
+                      <option value="timeout">Delete Message & 5-Min Timeout</option>
+                    </select>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="automod-log-channel">AutoMod Log Channel</label>
+                    <select id="automod-log-channel" class="custom-select"></select>
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-group mt-4">
+                <label for="automod-badwords-input">Prohibited Words / Blacklist (Comma separated)</label>
+                <textarea id="automod-badwords-input" class="custom-textarea" rows="3" placeholder="discord.gg/, scam, badword1, badword2"></textarea>
+              </div>
+
+              <button type="submit" class="btn btn-primary">💾 Save AutoMod Settings</button>
+            </form>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB: LEVELING & RANKS -->
+      <section id="tab-leveling" class="tab-content">
+        <div class="dashboard-grid">
+          <div class="panel">
+            <div class="panel-header">
+              <h3>⭐ Leveling Configuration</h3>
+              <label class="switch">
+                <input type="checkbox" id="leveling-toggle">
+                <span class="slider"></span>
+              </label>
+            </div>
+            <div class="panel-body">
+              <form id="leveling-form">
+                <div class="form-group">
+                  <label for="leveling-channel-select">Level-Up Announcement Channel</label>
+                  <select id="leveling-channel-select" class="custom-select">
+                    <option value="">Current Channel (Where member is typing)</option>
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label for="leveling-message-input">Level-Up Celebration Message</label>
+                  <textarea id="leveling-message-input" class="custom-textarea" rows="3">🎉 Congratulations {user}! You just leveled up to **Level {level}**!</textarea>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-block">💾 Save Leveling Settings</button>
+              </form>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-header">
+              <h3>🏆 Live Server Leaderboard</h3>
+              <button class="btn btn-sm btn-outline" id="refresh-leaderboard-btn">🔄 Refresh</button>
+            </div>
+            <div class="panel-body">
+              <div class="table-responsive">
+                <table class="custom-table" id="leaderboard-table">
+                  <thead>
+                    <tr>
+                      <th>Rank</th>
+                      <th>Member</th>
+                      <th>Level</th>
+                      <th>Total XP</th>
+                    </tr>
+                  </thead>
+                  <tbody id="leaderboard-table-body">
+                    <tr><td colspan="4" class="text-center text-muted">Loading leaderboard...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB: GIVEAWAYS STUDIO -->
+      <section id="tab-giveaways" class="tab-content">
+        <div class="panel">
+          <div class="panel-header">
+            <h3>🎉 Launch a Giveaway</h3>
+          </div>
+          <div class="panel-body">
+            <form id="create-giveaway-form">
+              <div class="dashboard-grid">
+                <div>
+                  <div class="form-group">
+                    <label for="ga-prize-input">Giveaway Prize *</label>
+                    <input type="text" id="ga-prize-input" class="custom-input" placeholder="e.g. Discord Nitro (1 Month) or 100,000 Credits" required>
+                  </div>
+                  <div class="form-group">
+                    <label for="ga-channel-select">Target Channel *</label>
+                    <select id="ga-channel-select" class="custom-select" required></select>
+                  </div>
+                </div>
+
+                <div>
+                  <div class="form-row">
+                    <div class="form-group flex-1">
+                      <label for="ga-duration-input">Duration (in minutes) *</label>
+                      <input type="number" id="ga-duration-input" class="custom-input" value="60" min="1" required>
+                    </div>
+                    <div class="form-group flex-1">
+                      <label for="ga-winners-input">Winners Count *</label>
+                      <input type="number" id="ga-winners-input" class="custom-input" value="1" min="1" max="20" required>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <button type="submit" class="btn btn-success">🚀 Launch Giveaway Now</button>
+            </form>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB: BUTTON ROLES STUDIO -->
+      <section id="tab-button-roles" class="tab-content">
+        <div class="panel">
+          <div class="panel-header">
+            <h3>🎭 Create Button Role Selector Panel</h3>
+          </div>
+          <div class="panel-body">
+            <form id="button-roles-form">
+              <div class="form-group">
+                <label for="br-channel-select">Channel to post in *</label>
+                <select id="br-channel-select" class="custom-select" required></select>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group flex-1">
+                  <label for="br-title-input">Panel Title *</label>
+                  <input type="text" id="br-title-input" class="custom-input" placeholder="e.g. Choose Your Notification Roles" required>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="br-desc-input">Description / Instructions *</label>
+                <textarea id="br-desc-input" class="custom-textarea" rows="2" placeholder="Click the buttons below to assign or remove roles..." required></textarea>
+              </div>
+
+              <h4 class="form-subtitle mt-4">Assign Buttons & Roles</h4>
+              <div class="form-row">
+                <div class="form-group flex-1">
+                  <label>Role 1</label>
+                  <select id="br-role-1" class="custom-select"></select>
+                </div>
+                <div class="form-group flex-1">
+                  <label>Button 1 Label</label>
+                  <input type="text" id="br-label-1" class="custom-input" placeholder="e.g. 📢 Announcements">
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group flex-1">
+                  <label>Role 2</label>
+                  <select id="br-role-2" class="custom-select"></select>
+                </div>
+                <div class="form-group flex-1">
+                  <label>Button 2 Label</label>
+                  <input type="text" id="br-label-2" class="custom-input" placeholder="e.g. 🎮 Gamer Role">
+                </div>
+              </div>
+
+              <button type="submit" class="btn btn-primary">🚀 Send Button Roles Panel</button>
+            </form>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB: BACKUPS -->
+      <section id="tab-backups" class="tab-content">
+        <div class="panel">
+          <div class="panel-header">
+            <h3>💾 Server Snapshot Backups</h3>
+            <button class="btn btn-primary btn-sm" id="create-backup-btn">➕ Take New Server Backup</button>
+          </div>
+          <div class="panel-body">
+            <div class="table-responsive">
+              <table class="custom-table" id="backups-table">
+                <thead>
+                  <tr>
+                    <th>Backup ID</th>
+                    <th>Created Time</th>
+                    <th>Channels</th>
+                    <th>Roles</th>
+                  </tr>
+                </thead>
+                <tbody id="backups-table-body">
+                  <tr><td colspan="4" class="text-center text-muted">No backups created yet.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB: LIVE CONSOLE LOGS -->
+      <section id="tab-console-logs" class="tab-content">
+        <div class="panel">
+          <div class="panel-header">
+            <h3>💻 Live Bot Console Logs</h3>
+            <button class="btn btn-sm btn-outline" id="refresh-logs-btn">🔄 Refresh Logs</button>
+          </div>
+          <div class="panel-body">
+            <div class="terminal-box" id="terminal-logs">
+              <div class="log-line text-muted">[SYSTEM] Connecting to live log stream...</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- TOAST CONTAINER -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>

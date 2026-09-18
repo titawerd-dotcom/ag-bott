@@ -117,7 +117,118 @@ module.exports = {
     }
 
     // =============================================================
-    // 2. LEVELING & XP SYSTEM
+    // 2. USER STATS (MESSAGE COUNT TRACKING)
+    // =============================================================
+    try {
+      db.incrementUserMessages(guildId, message.author.id);
+    } catch (e) {
+      console.error('[STATS ERROR] Failed to increment messages:', e);
+    }
+
+    // =============================================================
+    // 3. TRIGGER AUTO-RESPONDER ENGINE
+    // =============================================================
+    try {
+      const autoresponders = db.getAutoResponders(guildId);
+      const responderList = Object.values(autoresponders || {}).filter(r => r.enabled !== false && r.trigger);
+
+      if (responderList.length > 0) {
+        const rawContent = message.content.trim();
+        const lowerContent = rawContent.toLowerCase();
+
+        for (const responder of responderList) {
+          const trig = responder.trigger.toLowerCase();
+          let isMatch = false;
+
+          if (responder.matchType === 'exact') {
+            isMatch = (lowerContent === trig);
+          } else if (responder.matchType === 'startswith') {
+            isMatch = lowerContent.startsWith(trig);
+          } else if (responder.matchType === 'endswith') {
+            isMatch = lowerContent.endsWith(trig);
+          } else {
+            // Default: 'contains'
+            isMatch = lowerContent.includes(trig);
+          }
+
+          if (isMatch) {
+            // Check Cooldown
+            if (!global.autoResponderCooldowns) global.autoResponderCooldowns = new Map();
+            const cdKey = `${guildId}_${responder.id}_${message.author.id}`;
+            const now = Date.now();
+            const lastUsed = global.autoResponderCooldowns.get(cdKey) || 0;
+            const cdSeconds = responder.cooldown || 5;
+
+            if (now - lastUsed < cdSeconds * 1000) {
+              continue; // On cooldown
+            }
+            global.autoResponderCooldowns.set(cdKey, now);
+
+            // Delete trigger message if requested
+            if (responder.deleteTrigger) {
+              try {
+                await message.delete();
+              } catch (e) {}
+            }
+
+            // Variable Substitution
+            const formatVars = (str) => {
+              if (!str) return '';
+              return str
+                .replace(/{user}/g, `<@${message.author.id}>`)
+                .replace(/{userName}/g, message.author.username)
+                .replace(/{userTag}/g, message.author.tag)
+                .replace(/{server}/g, message.guild.name)
+                .replace(/{channel}/g, `${message.channel}`)
+                .replace(/{memberCount}/g, message.guild.memberCount);
+            };
+
+            const roleMentionText = responder.mentionRoleId ? `<@&${responder.mentionRoleId}>` : '';
+            const responseText = formatVars(responder.response || '');
+
+            if (responder.replyType === 'text') {
+              const fullContent = roleMentionText ? `${roleMentionText}\n${responseText}` : responseText;
+              if (fullContent.trim()) {
+                await message.channel.send({ content: fullContent });
+              }
+            } else {
+              // Rich Embed reply
+              const embed = new EmbedBuilder()
+                .setColor(responder.embedColor || config.defaultColor || '#5865F2')
+                .setDescription(responseText || ' ')
+                .setTimestamp();
+
+              if (responder.embedTitle) {
+                embed.setTitle(formatVars(responder.embedTitle));
+              }
+              if (responder.thumbnail && responder.thumbnail.startsWith('http')) {
+                embed.setThumbnail(responder.thumbnail);
+              }
+              if (responder.banner && responder.banner.startsWith('http')) {
+                embed.setImage(responder.banner);
+              }
+              if (responder.footer) {
+                embed.setFooter({ text: formatVars(responder.footer) });
+              }
+
+              const payload = { embeds: [embed] };
+              if (roleMentionText) {
+                payload.content = roleMentionText;
+              }
+
+              await message.channel.send(payload);
+            }
+
+            break; // Stop after first matched responder
+          }
+        }
+      }
+    } catch (err) {
+      console.error('[AUTORESPONDER ERROR]', err);
+    }
+
+    // =============================================================
+    // 4. LEVELING & XP SYSTEM
     // =============================================================
     const leveling = guildConfig.leveling;
     if (leveling?.enabled) {

@@ -1,4 +1,7 @@
 const { Events, ActivityType } = require('discord.js');
+const { startStatBotScheduler } = require('../../utils/statbot');
+const { startVoiceTrackerScheduler } = require('../../utils/voiceTracker');
+const { startTikTokNotifierScheduler } = require('../../utils/tiktokNotifier');
 
 module.exports = {
   name: Events.ClientReady,
@@ -10,6 +13,15 @@ module.exports = {
     console.log(`👥 Serving ${client.users.cache.size} users`);
     console.log('⚡ All slash commands, tickets, welcome, & moderation modules are ready!');
     console.log('================================================================');
+
+    // Start background StatBot scheduler
+    startStatBotScheduler(client);
+
+    // Start background Voice Activity Tracker scheduler
+    startVoiceTrackerScheduler(client);
+
+    // Start background TikTok NotifyMe scheduler
+    startTikTokNotifierScheduler(client);
 
     client.user.setPresence({
       activities: [

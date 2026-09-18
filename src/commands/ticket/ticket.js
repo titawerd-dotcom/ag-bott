@@ -5,7 +5,7 @@ const config = require('../../../config.json');
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('ticket')
-    .setDescription('Manage the current ticket channel')
+    .setDescription('Manage the current support ticket channel')
     .addSubcommand(sub =>
       sub.setName('add')
         .setDescription('Add a user to this ticket channel')
@@ -21,8 +21,21 @@ module.exports = {
         .setDescription('Close the current ticket')
     )
     .addSubcommand(sub =>
+      sub.setName('reopen')
+        .setDescription('Reopen a closed ticket')
+    )
+    .addSubcommand(sub =>
       sub.setName('claim')
         .setDescription('Claim this ticket as the active handler')
+    )
+    .addSubcommand(sub =>
+      sub.setName('rename')
+        .setDescription('Rename the current ticket channel')
+        .addStringOption(opt => opt.setName('name').setDescription('New channel name').setRequired(true))
+    )
+    .addSubcommand(sub =>
+      sub.setName('info')
+        .setDescription('View detailed ticket metadata and details')
     )
     .addSubcommand(sub =>
       sub.setName('delete')
@@ -34,7 +47,6 @@ module.exports = {
     const guildId = interaction.guild.id;
     const ticketData = db.getTicket(guildId, interaction.channel.id);
 
-    // If channel is not marked as ticket in DB, check name format
     const isTicketChannel = ticketData || interaction.channel.name.startsWith('ticket-');
 
     if (!isTicketChannel) {
@@ -51,7 +63,8 @@ module.exports = {
           ViewChannel: true,
           SendMessages: true,
           ReadMessageHistory: true,
-          AttachFiles: true
+          AttachFiles: true,
+          EmbedLinks: true
         });
 
         const embed = new EmbedBuilder()
@@ -108,7 +121,31 @@ module.exports = {
       const embed = new EmbedBuilder()
         .setColor(config.warningColor)
         .setTitle('🔒 Ticket Closed')
-        .setDescription(`Ticket has been closed by ${interaction.user}.`)
+        .setDescription(`Ticket has been closed by ${interaction.user}.\nUse \`/ticket reopen\` to open again or \`/ticket delete\` to remove.`)
+        .setTimestamp();
+
+      return interaction.reply({ embeds: [embed] });
+    }
+
+    if (subcommand === 'reopen') {
+      if (ticketData?.ownerId) {
+        try {
+          await interaction.channel.permissionOverwrites.edit(ticketData.ownerId, {
+            SendMessages: true,
+            ViewChannel: true
+          });
+        } catch (e) {}
+      }
+
+      db.saveTicket(guildId, interaction.channel.id, {
+        ...ticketData,
+        status: 'open'
+      });
+
+      const embed = new EmbedBuilder()
+        .setColor(config.successColor)
+        .setTitle('🔓 Ticket Reopened')
+        .setDescription(`Ticket has been reopened by ${interaction.user}.`)
         .setTimestamp();
 
       return interaction.reply({ embeds: [embed] });
@@ -133,6 +170,39 @@ module.exports = {
         .setTimestamp();
 
       return interaction.reply({ embeds: [embed] });
+    }
+
+    if (subcommand === 'rename') {
+      const newName = interaction.options.getString('name');
+      try {
+        await interaction.channel.setName(newName);
+        const embed = new EmbedBuilder()
+          .setColor(config.successColor)
+          .setDescription(`✏️ Channel renamed to **#${newName}**`)
+          .setTimestamp();
+        return interaction.reply({ embeds: [embed] });
+      } catch (err) {
+        return interaction.reply({
+          content: `${config.emojis.error} Failed to rename channel: ${err.message}`,
+          ephemeral: true
+        });
+      }
+    }
+
+    if (subcommand === 'info') {
+      const embed = new EmbedBuilder()
+        .setColor(config.defaultColor)
+        .setTitle(`🎫 Ticket Channel Details`)
+        .addFields(
+          { name: 'Channel', value: `${interaction.channel} (\`${interaction.channel.id}\`)`, inline: true },
+          { name: 'Status', value: ticketData?.status === 'closed' ? '`🔴 Closed`' : '`🟢 Open`', inline: true },
+          { name: 'Opened By', value: ticketData?.ownerId ? `<@${ticketData.ownerId}>` : '`Unknown`', inline: true },
+          { name: 'Claimed By', value: ticketData?.claimedBy ? `<@${ticketData.claimedBy}>` : '`Unclaimed`', inline: true },
+          { name: 'Created At', value: ticketData?.createdAt ? `<t:${Math.floor(ticketData.createdAt / 1000)}:R>` : '`N/A`', inline: true }
+        )
+        .setTimestamp();
+
+      return interaction.reply({ embeds: [embed], ephemeral: true });
     }
 
     if (subcommand === 'delete') {

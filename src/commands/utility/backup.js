@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } = require('discord.js');
+const { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, ChannelType } = require('discord.js');
 const db = require('../../database/db');
 const config = require('../../../config.json');
 
@@ -19,6 +19,11 @@ module.exports = {
       sub.setName('info')
         .setDescription('View details of a specific backup')
         .addStringOption(opt => opt.setName('backup_id').setDescription('Backup ID').setRequired(true))
+    )
+    .addSubcommand(sub =>
+      sub.setName('load')
+        .setDescription('Restore channels, categories, and roles from a backup')
+        .addStringOption(opt => opt.setName('backup_id').setDescription('The ID of the backup to restore').setRequired(true))
     ),
 
   async execute(interaction) {
@@ -113,6 +118,108 @@ module.exports = {
         .setTimestamp();
 
       return interaction.reply({ embeds: [embed] });
+    }
+
+    if (subcommand === 'load') {
+      const backupId = interaction.options.getString('backup_id');
+      const b = db.getBackup(guild.id, backupId);
+
+      if (!b) {
+        return interaction.reply({
+          content: `❌ Backup with ID \`${backupId}\` was not found in the database. Use \`/backup list\` to view available backups.`,
+          ephemeral: true
+        });
+      }
+
+      await interaction.deferReply();
+
+      let restoredRolesCount = 0;
+      let restoredCategoriesCount = 0;
+      let restoredChannelsCount = 0;
+
+      // 1. Recreate missing Roles
+      if (b.roles && Array.isArray(b.roles)) {
+        for (const roleData of b.roles) {
+          try {
+            const exists = guild.roles.cache.find(r => r.name.toLowerCase() === roleData.name.toLowerCase());
+            if (!exists) {
+              await guild.roles.create({
+                name: roleData.name,
+                color: roleData.color || '#99aab5',
+                permissions: roleData.permissions ? BigInt(roleData.permissions) : undefined,
+                reason: `[AG Backup Restore] Restoring from backup ${backupId}`
+              });
+              restoredRolesCount++;
+            }
+          } catch (e) {
+            console.error(`[BACKUP RESTORE] Failed to create role ${roleData.name}:`, e.message);
+          }
+        }
+      }
+
+      // 2. Identify & Recreate Categories
+      const categoryMap = new Map(); // Key: Category Name (lowercase), Value: Discord Category Channel Object
+      guild.channels.cache.forEach(ch => {
+        if (ch.type === ChannelType.GuildCategory) {
+          categoryMap.set(ch.name.toLowerCase(), ch);
+        }
+      });
+
+      if (b.channels && Array.isArray(b.channels)) {
+        // First pass: Create missing categories
+        for (const chData of b.channels) {
+          if (chData.type === ChannelType.GuildCategory || chData.type === 4) {
+            const catNameKey = chData.name.toLowerCase();
+            if (!categoryMap.has(catNameKey)) {
+              try {
+                const createdCat = await guild.channels.create({
+                  name: chData.name,
+                  type: ChannelType.GuildCategory,
+                  reason: `[AG Backup Restore] Restoring category from ${backupId}`
+                });
+                categoryMap.set(catNameKey, createdCat);
+                restoredCategoriesCount++;
+              } catch (e) {
+                console.error(`[BACKUP RESTORE] Failed to create category ${chData.name}:`, e.message);
+              }
+            }
+          }
+        }
+
+        // Second pass: Create Text, Voice, Announcement Channels under their categories
+        for (const chData of b.channels) {
+          if (chData.type === ChannelType.GuildCategory || chData.type === 4) continue;
+
+          try {
+            const parentCat = chData.parent ? categoryMap.get(chData.parent.toLowerCase()) : null;
+            const channelType = chData.type || ChannelType.GuildText;
+
+            await guild.channels.create({
+              name: chData.name,
+              type: channelType,
+              parent: parentCat ? parentCat.id : undefined,
+              reason: `[AG Backup Restore] Restoring channel from ${backupId}`
+            });
+            restoredChannelsCount++;
+          } catch (e) {
+            console.error(`[BACKUP RESTORE] Failed to create channel ${chData.name}:`, e.message);
+          }
+        }
+      }
+
+      const embed = new EmbedBuilder()
+        .setColor(config.successColor || '#57F287')
+        .setTitle('✅ Server Backup Restored Successfully')
+        .setDescription(`Restoration from backup \`${backupId}\` completed for **${guild.name}**.`)
+        .addFields(
+          { name: '📁 Restored Channels', value: `\`${restoredChannelsCount} channel(s)\``, inline: true },
+          { name: '📂 Restored Categories', value: `\`${restoredCategoriesCount} category(s)\``, inline: true },
+          { name: '🎭 Restored Roles', value: `\`${restoredRolesCount} role(s)\``, inline: true }
+        )
+        .setFooter({ text: 'All server structures and categories have been recreated.' })
+        .setTimestamp();
+
+      return interaction.editReply({ embeds: [embed] });
     }
   }
 };

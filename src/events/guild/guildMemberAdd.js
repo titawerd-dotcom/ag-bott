@@ -1,12 +1,32 @@
 const { Events, EmbedBuilder } = require('discord.js');
 const db = require('../../database/db');
 const config = require('../../../config.json');
+const { sendGuildLog } = require('../../utils/logger');
+const { updateGuildStats } = require('../../utils/statbot');
 
 module.exports = {
   name: Events.GuildMemberAdd,
   async execute(member) {
     const guildId = member.guild.id;
     const guildConfig = db.getGuildConfig(guildId);
+
+    // StatBot Counter update
+    updateGuildStats(member.guild, false).catch(() => {});
+
+    // 0. Audit & Discord Logging
+    await sendGuildLog(member.guild, 'memberAdd', {
+      title: '📥 Member Joined',
+      description: `<@${member.id}> (\`${member.user.tag}\`) joined **${member.guild.name}**.`,
+      color: config.successColor || '#57F287',
+      fields: [
+        { name: '👤 Member', value: `<@${member.id}> (\`${member.user.tag}\`)`, inline: true },
+        { name: '🔢 Member Count', value: `#${member.guild.memberCount}`, inline: true },
+        { name: '📅 Account Created', value: `<t:${Math.floor(member.user.createdTimestamp / 1000)}:R>`, inline: true }
+      ],
+      thumbnail: member.user.displayAvatarURL({ dynamic: true, size: 256 }),
+      user: { id: member.id, tag: member.user.tag },
+      details: { memberCount: member.guild.memberCount }
+    });
 
     // 1. Autorole handling
     if (guildConfig.autorole?.enabled && guildConfig.autorole?.roleId) {

@@ -36,6 +36,15 @@
         <button class="nav-item" data-tab="overview">
           <span class="icon">📊</span> Overview & Stats
         </button>
+        <button class="nav-item" data-tab="voice-stats">
+          <span class="icon">🎙️</span> Voice & Member Stats
+        </button>
+        <button class="nav-item" data-tab="statbot">
+          <span class="icon">📈</span> StatBot & Counters
+        </button>
+        <button class="nav-item" data-tab="discord-logs">
+          <span class="icon">📜</span> Server & Discord Logs
+        </button>
         <button class="nav-item" data-tab="embed-studio">
           <span class="icon">🎨</span> Embed & Text Studio
         </button>
@@ -46,10 +55,19 @@
           <span class="icon">🎫</span> Support Tickets
         </button>
         <button class="nav-item" data-tab="moderation">
-          <span class="icon">🛡️</span> Warnings & Logs
+          <span class="icon">🛡️</span> Warnings & Records
         </button>
 
         <div class="nav-section-title mt-2">ADVANCED SYSTEMS</div>
+        <button class="nav-item" data-tab="tiktok-notify">
+          <span class="icon">📱</span> TikTok NotifyMe
+        </button>
+        <button class="nav-item" data-tab="bulk-channels">
+          <span class="icon">⚡</span> Bulk Channel Studio
+        </button>
+        <button class="nav-item" data-tab="autoresponder">
+          <span class="icon">🎯</span> Auto Responder Studio
+        </button>
         <button class="nav-item" data-tab="automod">
           <span class="icon">🤖</span> AutoMod Protection
         </button>
@@ -434,6 +452,325 @@
         </div>
       </section>
 
+      <!-- TAB: VOICE & MEMBER ACTIVITY STATS (STATBOT STYLE) -->
+      <section id="tab-voice-stats" class="tab-content">
+        <!-- METRICS ROW -->
+        <div class="metrics-row mb-4">
+          <div class="metric-card">
+            <div class="metric-icon-box purple">🎙️</div>
+            <div class="metric-details">
+              <span class="metric-title">Total Voice Activity</span>
+              <h3 class="metric-value" id="vstats-total-hours">0h 0m</h3>
+              <small class="text-muted">Accumulated Voice Time</small>
+            </div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-icon-box blurple">💬</div>
+            <div class="metric-details">
+              <span class="metric-title">Total Chat Messages</span>
+              <h3 class="metric-value" id="vstats-total-messages">0</h3>
+              <small class="text-muted">Recorded Text Activity</small>
+            </div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-icon-box green">🟢</div>
+            <div class="metric-details">
+              <span class="metric-title">Active in Voice</span>
+              <h3 class="metric-value" id="vstats-active-voice">0</h3>
+              <small class="text-muted">Currently Connected</small>
+            </div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-icon-box amber">👥</div>
+            <div class="metric-details">
+              <span class="metric-title">Tracked Members</span>
+              <h3 class="metric-value" id="vstats-tracked-members">0</h3>
+              <small class="text-muted">Server Profiles</small>
+            </div>
+          </div>
+        </div>
+
+        <!-- LEADERBOARDS GRID -->
+        <div class="dashboard-grid mb-4">
+          <!-- TOP VOICE LEADERBOARD -->
+          <div class="panel">
+            <div class="panel-header">
+              <div>
+                <h3>🎙️ Top Voice Activity Leaderboard</h3>
+                <p class="panel-subtitle">Ranked by total time spent in server voice channels</p>
+              </div>
+              <button class="btn btn-sm btn-outline" id="refresh-voice-stats-btn">🔄 Refresh</button>
+            </div>
+            <div class="panel-body">
+              <div class="table-responsive">
+                <table class="custom-table" id="voice-leaderboard-table">
+                  <thead>
+                    <tr>
+                      <th>Rank</th>
+                      <th>Member</th>
+                      <th>Voice Time</th>
+                      <th>Sessions</th>
+                      <th>Live Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="voice-leaderboard-body">
+                    <tr><td colspan="5" class="text-center text-muted">Loading voice leaderboard...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- TOP MESSAGES LEADERBOARD -->
+          <div class="panel">
+            <div class="panel-header">
+              <div>
+                <h3>💬 Top Chat Messages Leaderboard</h3>
+                <p class="panel-subtitle">Ranked by total messages sent across text channels</p>
+              </div>
+              <button class="btn btn-sm btn-outline" id="refresh-msg-stats-btn">🔄 Refresh</button>
+            </div>
+            <div class="panel-body">
+              <div class="table-responsive">
+                <table class="custom-table" id="msg-leaderboard-table">
+                  <thead>
+                    <tr>
+                      <th>Rank</th>
+                      <th>Member</th>
+                      <th>Messages</th>
+                      <th>Voice Time</th>
+                    </tr>
+                  </thead>
+                  <tbody id="msg-leaderboard-body">
+                    <tr><td colspan="4" class="text-center text-muted">Loading messages leaderboard...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- STATS RESET & MAINTENANCE -->
+        <div class="panel">
+          <div class="panel-header">
+            <h3>⚙️ Statistics Management & Reset</h3>
+          </div>
+          <div class="panel-body">
+            <div class="btn-group-row">
+              <button type="button" class="btn btn-outline" id="btn-reset-all-voice-stats" style="color: var(--amber);">
+                🔄 Reset All Voice Activity Time
+              </button>
+              <button type="button" class="btn btn-outline" id="btn-reset-all-msg-stats" style="color: var(--amber);">
+                🔄 Reset All Message Counts
+              </button>
+              <button type="button" class="btn btn-danger-outline" id="btn-reset-all-server-stats">
+                🗑️ Clear All User Statistics
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB: STATBOT & COUNTER CHANNELS -->
+      <section id="tab-statbot" class="tab-content">
+        <!-- TOP CONTROLS PANEL -->
+        <div class="panel mb-4">
+          <div class="panel-header">
+            <div>
+              <h3>📈 StatBot & Live Server Counter Channels</h3>
+              <p class="panel-subtitle">Create locked voice channels that dynamically update with live server statistics in real-time</p>
+            </div>
+            <div class="header-action-group">
+              <label class="switch">
+                <input type="checkbox" id="statbot-toggle">
+                <span class="slider"></span>
+              </label>
+            </div>
+          </div>
+          <div class="panel-body">
+            <div class="btn-group-row mb-4">
+              <button type="button" class="btn btn-primary" id="statbot-auto-setup-btn">
+                ⚡ Auto-Setup Stat Channels
+              </button>
+              <button type="button" class="btn btn-outline" id="statbot-force-update-btn">
+                🔄 Force Update Counters
+              </button>
+              <button type="button" class="btn btn-danger-outline" id="statbot-delete-btn">
+                🗑️ Delete All Stat Channels
+              </button>
+            </div>
+
+            <!-- LIVE SERVER METRICS OVERVIEW -->
+            <div class="metrics-row mb-4">
+              <div class="metric-card">
+                <div class="metric-icon-box blurple">👥</div>
+                <div class="metric-details">
+                  <span class="metric-title">Total Members</span>
+                  <h3 class="metric-value" id="statbot-metric-members">0</h3>
+                  <small class="text-muted" id="statbot-metric-breakdown">0 Humans • 0 Bots</small>
+                </div>
+              </div>
+              <div class="metric-card">
+                <div class="metric-icon-box green">🟢</div>
+                <div class="metric-details">
+                  <span class="metric-title">Online Members</span>
+                  <h3 class="metric-value" id="statbot-metric-online">0</h3>
+                  <small class="text-muted">Active Presences</small>
+                </div>
+              </div>
+              <div class="metric-card">
+                <div class="metric-icon-box amber">🎙️</div>
+                <div class="metric-details">
+                  <span class="metric-title">In Voice Channels</span>
+                  <h3 class="metric-value" id="statbot-metric-voice">0</h3>
+                  <small class="text-muted">Speaking & Listening</small>
+                </div>
+              </div>
+              <div class="metric-card">
+                <div class="metric-icon-box pink">🚀</div>
+                <div class="metric-details">
+                  <span class="metric-title">Server Boosts</span>
+                  <h3 class="metric-value" id="statbot-metric-boosts">0</h3>
+                  <small class="text-muted" id="statbot-metric-tier">Tier 0</small>
+                </div>
+              </div>
+              <div class="metric-card">
+                <div class="metric-icon-box purple">📁</div>
+                <div class="metric-details">
+                  <span class="metric-title">Channels & Roles</span>
+                  <h3 class="metric-value" id="statbot-metric-channels">0</h3>
+                  <small class="text-muted" id="statbot-metric-roles">0 Roles</small>
+                </div>
+              </div>
+            </div>
+
+            <!-- CONFIGURATION & PREVIEW GRID -->
+            <div class="dashboard-grid">
+              <!-- TEMPLATES CONFIG FORM -->
+              <div>
+                <h4 class="form-subtitle">⚙️ Counter Channel Templates ({count} placeholder)</h4>
+                <form id="statbot-config-form">
+                  <div class="statbot-channel-list">
+                    <!-- Total Members -->
+                    <div class="statbot-channel-item">
+                      <label class="checkbox-label">
+                        <input type="checkbox" id="statbot-chk-total" checked>
+                        <span>👥 Total Members</span>
+                      </label>
+                      <input type="text" class="custom-input" id="statbot-tpl-total" value="👥 Total Members: {count}">
+                    </div>
+
+                    <!-- Humans -->
+                    <div class="statbot-channel-item">
+                      <label class="checkbox-label">
+                        <input type="checkbox" id="statbot-chk-humans" checked>
+                        <span>👤 Humans</span>
+                      </label>
+                      <input type="text" class="custom-input" id="statbot-tpl-humans" value="👤 Humans: {count}">
+                    </div>
+
+                    <!-- Bots -->
+                    <div class="statbot-channel-item">
+                      <label class="checkbox-label">
+                        <input type="checkbox" id="statbot-chk-bots" checked>
+                        <span>🤖 Bots</span>
+                      </label>
+                      <input type="text" class="custom-input" id="statbot-tpl-bots" value="🤖 Bots: {count}">
+                    </div>
+
+                    <!-- Online -->
+                    <div class="statbot-channel-item">
+                      <label class="checkbox-label">
+                        <input type="checkbox" id="statbot-chk-online" checked>
+                        <span>🟢 Online Members</span>
+                      </label>
+                      <input type="text" class="custom-input" id="statbot-tpl-online" value="🟢 Online: {count}">
+                    </div>
+
+                    <!-- Voice -->
+                    <div class="statbot-channel-item">
+                      <label class="checkbox-label">
+                        <input type="checkbox" id="statbot-chk-voice">
+                        <span>🎙️ In Voice</span>
+                      </label>
+                      <input type="text" class="custom-input" id="statbot-tpl-voice" value="🎙️ In Voice: {count}">
+                    </div>
+
+                    <!-- Boosts -->
+                    <div class="statbot-channel-item">
+                      <label class="checkbox-label">
+                        <input type="checkbox" id="statbot-chk-boosts">
+                        <span>🚀 Server Boosts</span>
+                      </label>
+                      <input type="text" class="custom-input" id="statbot-tpl-boosts" value="🚀 Boosts: {count}">
+                    </div>
+
+                    <!-- Channels -->
+                    <div class="statbot-channel-item">
+                      <label class="checkbox-label">
+                        <input type="checkbox" id="statbot-chk-channels">
+                        <span>📁 Total Channels</span>
+                      </label>
+                      <input type="text" class="custom-input" id="statbot-tpl-channels" value="📁 Channels: {count}">
+                    </div>
+
+                    <!-- Roles -->
+                    <div class="statbot-channel-item">
+                      <label class="checkbox-label">
+                        <input type="checkbox" id="statbot-chk-roles">
+                        <span>🎭 Total Roles</span>
+                      </label>
+                      <input type="text" class="custom-input" id="statbot-tpl-roles" value="🎭 Roles: {count}">
+                    </div>
+                  </div>
+
+                  <button type="submit" class="btn btn-primary btn-block mt-3">
+                    💾 Save StatBot Templates
+                  </button>
+                </form>
+              </div>
+
+              <!-- LIVE DISCORD CATEGORY PREVIEW -->
+              <div>
+                <h4 class="form-subtitle">👀 Discord Category Live Preview</h4>
+                <div class="discord-channel-tree-preview">
+                  <div class="discord-category-header">
+                    <span class="category-caret">▼</span>
+                    <span class="category-name">📊 SERVER STATS</span>
+                  </div>
+                  <div class="discord-channel-list-preview" id="statbot-preview-channels">
+                    <div class="discord-voice-channel-item">
+                      <span class="voice-icon">🔒 🔊</span>
+                      <span class="channel-text" id="preview-stat-total">👥 Total Members: --</span>
+                    </div>
+                    <div class="discord-voice-channel-item">
+                      <span class="voice-icon">🔒 🔊</span>
+                      <span class="channel-text" id="preview-stat-humans">👤 Humans: --</span>
+                    </div>
+                    <div class="discord-voice-channel-item">
+                      <span class="voice-icon">🔒 🔊</span>
+                      <span class="channel-text" id="preview-stat-bots">🤖 Bots: --</span>
+                    </div>
+                    <div class="discord-voice-channel-item">
+                      <span class="voice-icon">🔒 🔊</span>
+                      <span class="channel-text" id="preview-stat-online">🟢 Online: --</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="tip-card mt-3">
+                  <div class="tip-title">💡 Discord Rate Limit Protection</div>
+                  <p class="tip-text">
+                    Discord permits a maximum of 2 channel name updates every 10 minutes per channel.
+                    StatBot automatically manages synchronizations and prevents rate limiting by only updating channels when numbers change.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <!-- TAB: EMBED STUDIO -->
       <section id="tab-embed-studio" class="tab-content">
         <div class="studio-grid">
@@ -642,36 +979,364 @@
         </div>
       </section>
 
-      <!-- TAB: TICKETS -->
+      <!-- TAB: TICKETS STUDIO -->
       <section id="tab-tickets" class="tab-content">
-        <div class="panel">
-          <div class="panel-header">
-            <h3>🎫 Active & Recent Tickets</h3>
-            <button class="btn btn-sm btn-outline" id="refresh-tickets-btn">🔄 Refresh</button>
+        <!-- TICKETS SUB-NAV -->
+        <div class="sub-nav-bar mb-3">
+          <button type="button" class="sub-nav-btn active" data-subtab="ticket-panel">
+            🛠️ Ticket Panel Builder & Deployer
+          </button>
+          <button type="button" class="sub-nav-btn" data-subtab="ticket-welcome">
+            💬 Inside Ticket Welcome Message
+          </button>
+          <button type="button" class="sub-nav-btn" data-subtab="ticket-manager">
+            📋 Active & Past Tickets Manager
+          </button>
+        </div>
+
+        <!-- SUBTAB 1: TICKET PANEL BUILDER & LIVE PREVIEW -->
+        <div id="subtab-ticket-panel" class="ticket-subtab-content active">
+          <div class="studio-grid">
+            <div class="panel">
+              <div class="panel-header">
+                <div>
+                  <h3>🛠️ Support Ticket Panel Creator</h3>
+                  <p class="panel-subtitle">Design the public ticket creation panel with custom banner, thumbnail, colors, and button styling</p>
+                </div>
+              </div>
+              <div class="panel-body">
+                <form id="ticket-panel-form">
+                  <div class="form-row">
+                    <div class="form-group flex-1">
+                      <label for="ticket-panel-channel">Channel to Post Panel *</label>
+                      <select id="ticket-panel-channel" class="custom-select" required></select>
+                    </div>
+                    <div class="form-group flex-1">
+                      <label for="ticket-panel-category">Tickets Category (Optional)</label>
+                      <select id="ticket-panel-category" class="custom-select">
+                        <option value="">-- No Category (Root) --</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="ticket-panel-staffrole">Support Staff Role (Has access to view tickets)</label>
+                    <select id="ticket-panel-staffrole" class="custom-select">
+                      <option value="">-- Administrator Only --</option>
+                    </select>
+                  </div>
+
+                  <div class="form-row">
+                    <div class="form-group flex-1">
+                      <label for="ticket-panel-title">Embed Title</label>
+                      <input type="text" id="ticket-panel-title" class="custom-input" value="📩 Support & Help Desk" placeholder="e.g. Support & Help Desk">
+                    </div>
+                    <div class="form-group">
+                      <label for="ticket-panel-color">Embed Color</label>
+                      <input type="color" id="ticket-panel-color" class="color-picker-input" value="#5865F2">
+                    </div>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="ticket-panel-desc">Embed Description</label>
+                    <textarea id="ticket-panel-desc" class="custom-textarea" rows="3" placeholder="Instructions for users...">Need assistance, want to report an issue, or talk to our staff team?
+
+Click the **Create Ticket** button below to open a private support room with our staff.</textarea>
+                  </div>
+
+                  <div class="form-row">
+                    <div class="form-group flex-1">
+                      <label for="ticket-panel-banner">Banner Image URL (Large bottom image)</label>
+                      <input type="url" id="ticket-panel-banner" class="custom-input" placeholder="https://example.com/banner.png">
+                    </div>
+                    <div class="form-group flex-1">
+                      <label for="ticket-panel-thumbnail">Thumbnail URL (Small corner image)</label>
+                      <input type="url" id="ticket-panel-thumbnail" class="custom-input" placeholder="https://example.com/logo.png">
+                    </div>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="ticket-panel-footer">Footer Text</label>
+                    <input type="text" id="ticket-panel-footer" class="custom-input" value="{server} • Official Support System" placeholder="{server} • Official Support System">
+                  </div>
+
+                  <h4 class="form-subtitle mt-3">🔘 Ticket Button Customization</h4>
+                  <div class="form-row">
+                    <div class="form-group flex-1">
+                      <label for="ticket-panel-btn-label">Button Label</label>
+                      <input type="text" id="ticket-panel-btn-label" class="custom-input" value="Create Ticket">
+                    </div>
+                    <div class="form-group" style="max-width: 110px;">
+                      <label for="ticket-panel-btn-emoji">Emoji</label>
+                      <input type="text" id="ticket-panel-btn-emoji" class="custom-input" value="📩">
+                    </div>
+                    <div class="form-group flex-1">
+                      <label for="ticket-panel-btn-style">Button Style / Color</label>
+                      <select id="ticket-panel-btn-style" class="custom-select">
+                        <option value="Primary">Blurple (Primary)</option>
+                        <option value="Success">Green (Success)</option>
+                        <option value="Danger">Red (Danger)</option>
+                        <option value="Secondary">Gray (Secondary)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div class="btn-group-row mt-4">
+                    <button type="button" class="btn btn-secondary flex-1" id="btn-save-ticket-panel">
+                      💾 Save Config
+                    </button>
+                    <button type="submit" class="btn btn-primary flex-2" id="btn-deploy-ticket-panel">
+                      🚀 Deploy Ticket Panel to Discord
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+
+            <!-- LIVE DISCORD PREVIEW FOR TICKET PANEL -->
+            <div class="panel">
+              <div class="panel-header">
+                <h3>👀 Live Discord Preview</h3>
+                <span class="badge">REAL-TIME PREVIEW</span>
+              </div>
+              <div class="panel-body discord-preview-container">
+                <div class="discord-message">
+                  <img src="https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0a6a49cf127bf92de1e2_icon_clyde_blurple_RGB.png" class="discord-avatar" alt="Bot Avatar" id="preview-ticket-avatar">
+                  <div class="discord-content">
+                    <div class="discord-author">
+                      <span class="discord-name" id="preview-ticket-bot-name">AG System</span>
+                      <span class="discord-bot-tag">APP</span>
+                      <span class="discord-timestamp">Today at 12:00 PM</span>
+                    </div>
+
+                    <div class="discord-embed" id="preview-ticket-embed" style="border-left-color: #5865F2;">
+                      <div class="discord-embed-grid">
+                        <div class="discord-embed-main">
+                          <div class="discord-embed-title" id="preview-ticket-title">📩 Support & Help Desk</div>
+                          <div class="discord-embed-desc" id="preview-ticket-desc">
+                            Need assistance, want to report an issue, or talk to our staff team?<br><br>
+                            Click the <strong>Create Ticket</strong> button below to open a private support room with our staff.
+                          </div>
+                          <div class="discord-embed-fields">
+                            <div class="discord-field">
+                              <div class="field-name">🔒 Private & Secure</div>
+                              <div class="field-val">Only you and server staff can view your ticket.</div>
+                            </div>
+                            <div class="discord-field">
+                              <div class="field-name">⚡ Fast Support</div>
+                              <div class="field-val">A staff member will assist you shortly.</div>
+                            </div>
+                          </div>
+                        </div>
+                        <img id="preview-ticket-thumb" class="discord-embed-thumb" style="display: none;" src="" alt="Thumbnail">
+                      </div>
+                      <img id="preview-ticket-banner" class="discord-embed-image" style="display: none;" src="" alt="Banner">
+                      <div class="discord-embed-footer" id="preview-ticket-footer">
+                        Server • Official Support System
+                      </div>
+                    </div>
+
+                    <div class="discord-buttons-row mt-2">
+                      <button type="button" class="discord-btn discord-btn-primary" id="preview-ticket-btn">
+                        <span id="preview-ticket-btn-emoji">📩</span>
+                        <span id="preview-ticket-btn-label">Create Ticket</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-          <div class="panel-body">
-            <div class="table-responsive">
-              <table class="custom-table" id="tickets-table">
-                <thead>
-                  <tr>
-                    <th>Ticket #</th>
-                    <th>Opened By</th>
-                    <th>Status</th>
-                    <th>Claimed By</th>
-                    <th>Created Time</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-                <tbody id="tickets-table-body">
-                  <tr>
-                    <td colspan="6" class="text-center text-muted">No tickets found for this server.</td>
-                  </tr>
-                </tbody>
-              </table>
+        </div>
+
+        <!-- SUBTAB 2: INSIDE TICKET WELCOME CUSTOMIZER -->
+        <div id="subtab-ticket-welcome" class="ticket-subtab-content" style="display: none;">
+          <div class="studio-grid">
+            <div class="panel">
+              <div class="panel-header">
+                <div>
+                  <h3>💬 Inside Ticket Welcome Embed</h3>
+                  <p class="panel-subtitle">Customize the greeting card and banner displayed inside each created ticket channel</p>
+                </div>
+              </div>
+              <div class="panel-body">
+                <form id="ticket-inside-form">
+                  <div class="form-row">
+                    <div class="form-group flex-1">
+                      <label for="ticket-inside-title">Embed Title ({ticketNumber} placeholder)</label>
+                      <input type="text" id="ticket-inside-title" class="custom-input" value="📩 Support Ticket #{ticketNumber}">
+                    </div>
+                    <div class="form-group">
+                      <label for="ticket-inside-color">Embed Color</label>
+                      <input type="color" id="ticket-inside-color" class="color-picker-input" value="#5865F2">
+                    </div>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="ticket-inside-desc">Welcome Description Message</label>
+                    <textarea id="ticket-inside-desc" class="custom-textarea" rows="4">Hello {user}, welcome to your support ticket!
+
+• Please describe your issue or question in detail.
+• Our support team will assist you shortly.
+
+**Ticket Controls:** Use the buttons below to manage this ticket.</textarea>
+                    <div class="placeholder-tag-group mt-1">
+                      <span class="placeholder-tag" onclick="insertPlaceholder('ticket-inside-desc', '{user}')">{user}</span>
+                      <span class="placeholder-tag" onclick="insertPlaceholder('ticket-inside-desc', '{userName}')">{userName}</span>
+                      <span class="placeholder-tag" onclick="insertPlaceholder('ticket-inside-desc', '{server}')">{server}</span>
+                      <span class="placeholder-tag" onclick="insertPlaceholder('ticket-inside-desc', '{ticketNumber}')">{ticketNumber}</span>
+                    </div>
+                  </div>
+
+                  <div class="form-row">
+                    <div class="form-group flex-1">
+                      <label for="ticket-inside-banner">Banner Image URL</label>
+                      <input type="url" id="ticket-inside-banner" class="custom-input" placeholder="https://example.com/ticket-welcome-banner.png">
+                    </div>
+                    <div class="form-group flex-1">
+                      <label for="ticket-inside-thumbnail">Thumbnail URL</label>
+                      <input type="url" id="ticket-inside-thumbnail" class="custom-input" placeholder="https://example.com/thumb.png">
+                    </div>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="ticket-inside-footer">Footer Text</label>
+                    <input type="text" id="ticket-inside-footer" class="custom-input" value="Support Ticket System">
+                  </div>
+
+                  <div class="filter-item mt-3">
+                    <span>🔔 Mention/Ping Support Staff Role upon ticket creation</span>
+                    <input type="checkbox" id="ticket-inside-ping" checked>
+                  </div>
+
+                  <button type="submit" class="btn btn-primary btn-block mt-4" id="btn-save-ticket-inside">
+                    💾 Save Inside Welcome Settings
+                  </button>
+                </form>
+              </div>
+            </div>
+
+            <!-- LIVE PREVIEW FOR INSIDE TICKET -->
+            <div class="panel">
+              <div class="panel-header">
+                <h3>👀 Inside Ticket Channel Preview</h3>
+                <span class="badge">ROOM PREVIEW</span>
+              </div>
+              <div class="panel-body discord-preview-container">
+                <div class="discord-message">
+                  <img src="https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0a6a49cf127bf92de1e2_icon_clyde_blurple_RGB.png" class="discord-avatar" alt="Avatar">
+                  <div class="discord-content">
+                    <div class="discord-author">
+                      <span class="discord-name">AG System</span>
+                      <span class="discord-bot-tag">APP</span>
+                      <span class="discord-timestamp">Today at 12:00 PM</span>
+                    </div>
+
+                    <div class="discord-ping-line mb-1 text-muted" id="preview-inside-ping">
+                      @Member @SupportTeam
+                    </div>
+
+                    <div class="discord-embed" id="preview-inside-embed" style="border-left-color: #5865F2;">
+                      <div class="discord-embed-grid">
+                        <div class="discord-embed-main">
+                          <div class="discord-embed-title" id="preview-inside-title">📩 Support Ticket #0001</div>
+                          <div class="discord-embed-desc" id="preview-inside-desc">
+                            Hello @User, welcome to your support ticket!<br><br>
+                            • Please describe your issue or question in detail.<br>
+                            • Our support team will assist you shortly.<br><br>
+                            <strong>Ticket Controls:</strong> Use the buttons below to manage this ticket.
+                          </div>
+                          <div class="discord-embed-fields">
+                            <div class="discord-field">
+                              <div class="field-name">👤 Opened by</div>
+                              <div class="field-val">@User</div>
+                            </div>
+                            <div class="discord-field">
+                              <div class="field-name">⏰ Created at</div>
+                              <div class="field-val">Just now</div>
+                            </div>
+                          </div>
+                        </div>
+                        <img id="preview-inside-thumb" class="discord-embed-thumb" style="display: none;" src="" alt="Thumb">
+                      </div>
+                      <img id="preview-inside-banner" class="discord-embed-image" style="display: none;" src="" alt="Banner">
+                      <div class="discord-embed-footer" id="preview-inside-footer">
+                        Support Ticket System
+                      </div>
+                    </div>
+
+                    <div class="discord-buttons-row mt-2">
+                      <button type="button" class="discord-btn discord-btn-danger">🔒 Close Ticket</button>
+                      <button type="button" class="discord-btn discord-btn-success">📌 Claim Ticket</button>
+                      <button type="button" class="discord-btn discord-btn-secondary">🗑️ Delete</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SUBTAB 3: ACTIVE & CLOSED TICKETS MANAGER -->
+        <div id="subtab-ticket-manager" class="ticket-subtab-content" style="display: none;">
+          <div class="panel">
+            <div class="panel-header">
+              <div>
+                <h3>🎫 Live Server Tickets Manager</h3>
+                <p class="panel-subtitle">View, manage, claim, message, and resolve user support tickets directly from the dashboard</p>
+              </div>
+              <div class="btn-group-row">
+                <input type="text" id="tickets-search-input" class="custom-input custom-input-sm" placeholder="🔍 Search tickets...">
+                <button class="btn btn-sm btn-outline" id="refresh-tickets-btn">🔄 Refresh Tickets</button>
+              </div>
+            </div>
+            <div class="panel-body">
+              <div class="table-responsive">
+                <table class="custom-table" id="tickets-table">
+                  <thead>
+                    <tr>
+                      <th>Ticket #</th>
+                      <th>Opened By</th>
+                      <th>Channel</th>
+                      <th>Status</th>
+                      <th>Assigned Staff</th>
+                      <th>Created</th>
+                      <th>Dashboard Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tickets-table-body">
+                    <tr>
+                      <td colspan="7" class="text-center text-muted">Loading tickets list...</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </div>
       </section>
+
+      <!-- TICKET MESSAGE MODAL -->
+      <div id="ticket-modal-overlay" class="modal-overlay" style="display: none;">
+        <div class="modal-card">
+          <div class="modal-header">
+            <h3 id="ticket-modal-title">💬 Send Staff Message to Ticket</h3>
+            <button type="button" class="modal-close-btn" id="ticket-modal-close">×</button>
+          </div>
+          <div class="modal-body">
+            <input type="hidden" id="ticket-modal-channel-id">
+            <p class="text-muted mb-3" id="ticket-modal-subtitle">Dispatch a message to the user inside this ticket room:</p>
+            <div class="form-group">
+              <label for="ticket-modal-text">Message Content *</label>
+              <textarea id="ticket-modal-text" class="custom-textarea" rows="4" placeholder="Type your response to the user..." required></textarea>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline" id="ticket-modal-cancel">Cancel</button>
+            <button type="button" class="btn btn-primary" id="ticket-modal-send">🚀 Send to Discord</button>
+          </div>
+        </div>
+      </div>
 
       <!-- TAB: MODERATION -->
       <section id="tab-moderation" class="tab-content">
@@ -696,6 +1361,587 @@
                   <tr>
                     <td colspan="5" class="text-center text-muted">No warnings recorded on this server.</td>
                   </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB: TIKTOK NOTIFYME STUDIO (LIVE & VIDEO ALERTS) -->
+      <section id="tab-tiktok-notify" class="tab-content">
+        <div class="studio-grid mb-4">
+          <!-- TIKTOK CONFIG PANEL -->
+          <div class="panel">
+            <div class="panel-header">
+              <div>
+                <h3 id="tiktok-form-title">📱 TikTok Live & Video Notification Studio</h3>
+                <p class="panel-subtitle">Automatically post live stream and new video alerts from TikTok creators directly into Discord</p>
+              </div>
+            </div>
+            <div class="panel-body">
+              <form id="tiktok-form">
+                <input type="hidden" id="tiktok-edit-id" value="">
+
+                <div class="form-row">
+                  <div class="form-group flex-1">
+                    <label for="tiktok-username">TikTok Username / Handle *</label>
+                    <input type="text" id="tiktok-username" class="custom-input" placeholder="e.g. kurdish_streamer or @user" required>
+                  </div>
+                  <div class="form-group flex-1">
+                    <label for="tiktok-channel-select">Discord Alert Channel *</label>
+                    <select id="tiktok-channel-select" class="custom-select" required></select>
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-group flex-1">
+                    <label for="tiktok-role-select">Mention / Ping Role (Optional)</label>
+                    <select id="tiktok-role-select" class="custom-select">
+                      <option value="">-- No Role Mention --</option>
+                      <option value="everyone">@everyone</option>
+                      <option value="here">@here</option>
+                    </select>
+                  </div>
+                  <div class="form-group flex-1">
+                    <label>Notification Events *</label>
+                    <div style="display: flex; gap: 14px; margin-top: 8px;">
+                      <label class="checkbox-label">
+                        <input type="checkbox" id="tiktok-notify-live" checked>
+                        <span>🔴 Live Stream Alerts</span>
+                      </label>
+                      <label class="checkbox-label">
+                        <input type="checkbox" id="tiktok-notify-video" checked>
+                        <span>🎬 New Video Alerts</span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label for="tiktok-custom-message">Custom Notification Message</label>
+                  <textarea id="tiktok-custom-message" class="custom-textarea" rows="3" placeholder="🔥 **{author}** is now **LIVE** on TikTok! Join the stream: {url}">🔥 **{author}** is now **LIVE** on TikTok! Join the stream: {url}</textarea>
+                  <div class="placeholder-tag-group mt-1">
+                    <span class="placeholder-tag" onclick="insertPlaceholder('tiktok-custom-message', '{author}')">{author}</span>
+                    <span class="placeholder-tag" onclick="insertPlaceholder('tiktok-custom-message', '{username}')">{username}</span>
+                    <span class="placeholder-tag" onclick="insertPlaceholder('tiktok-custom-message', '{url}')">{url}</span>
+                    <span class="placeholder-tag" onclick="insertPlaceholder('tiktok-custom-message', '{title}')">{title}</span>
+                    <span class="placeholder-tag" onclick="insertPlaceholder('tiktok-custom-message', '{role}')">{role}</span>
+                    <span class="placeholder-tag" onclick="insertPlaceholder('tiktok-custom-message', '{server}')">{server}</span>
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-group flex-3">
+                    <label for="tiktok-embed-title">Embed Title</label>
+                    <input type="text" id="tiktok-embed-title" class="custom-input" value="🔴 TikTok Live Stream Alert!">
+                  </div>
+                  <div class="form-group flex-1">
+                    <label for="tiktok-embed-color">Embed Color</label>
+                    <input type="color" id="tiktok-embed-color" class="color-picker-input" value="#FE2C55">
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label for="tiktok-banner-url">Custom Banner Image URL (Optional)</label>
+                  <input type="url" id="tiktok-banner-url" class="custom-input" placeholder="https://example.com/banner.png">
+                </div>
+
+                <div class="btn-group-row mt-4">
+                  <button type="button" class="btn btn-outline flex-1" id="tiktok-reset-btn">
+                    🔄 Reset
+                  </button>
+                  <button type="submit" class="btn btn-primary flex-2" id="tiktok-submit-btn">
+                    💾 Save TikTok Tracker
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <!-- LIVE PREVIEW PANEL -->
+          <div class="panel">
+            <div class="panel-header">
+              <h3>👀 Live Discord TikTok Preview</h3>
+              <span class="badge" style="background: rgba(254,44,85,0.2); color: #fe2c55; border: 1px solid #fe2c55;">TIKTOK LIVE</span>
+            </div>
+            <div class="panel-body discord-preview-container">
+              <div class="discord-message">
+                <img src="https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0a6a49cf127bf92de1e2_icon_clyde_blurple_RGB.png" class="discord-avatar" alt="Bot Avatar">
+                <div class="discord-content">
+                  <div class="discord-author">
+                    <span class="discord-name">AG System</span>
+                    <span class="discord-bot-tag">APP</span>
+                    <span class="discord-timestamp">Today at 12:00 PM</span>
+                  </div>
+
+                  <!-- ROLE MENTION PREVIEW -->
+                  <div class="discord-ping-line mb-1" id="tt-preview-role-ping" style="display: none;">
+                    <span class="discord-mention-pill" id="tt-preview-role-text">@everyone</span>
+                  </div>
+
+                  <!-- CUSTOM MESSAGE BODY -->
+                  <div class="discord-text-body mb-2" id="tt-preview-msg">
+                    🔥 <strong>Kurdish Creator</strong> is now <strong>LIVE</strong> on TikTok! Join the stream: https://www.tiktok.com/@creator/live
+                  </div>
+
+                  <!-- EMBED PREVIEW -->
+                  <div class="discord-embed" id="tt-preview-embed" style="border-left-color: #FE2C55;">
+                    <div class="discord-embed-grid">
+                      <div class="discord-embed-main">
+                        <div class="discord-embed-title" id="tt-preview-title" style="color: #fe2c55;">
+                          🔴 TikTok Live Stream Alert!
+                        </div>
+                        <div class="discord-embed-desc" id="tt-preview-desc">
+                          📡 <strong>Stream Status:</strong> 🔴 <strong>STREAMING LIVE NOW</strong><br>
+                          🔗 <strong>Direct Link:</strong> <a href="#" style="color:#5865F2;">Click here to watch on TikTok</a>
+                        </div>
+                      </div>
+                      <img id="tt-preview-thumb" class="discord-embed-thumb" src="https://cdn-icons-png.flaticon.com/512/3046/3046121.png" alt="Thumbnail">
+                    </div>
+                    <img id="tt-preview-banner" class="discord-embed-image" style="display: none;" src="" alt="Banner">
+                    <div class="discord-embed-footer" id="tt-preview-footer">
+                      TikTok NotifyMe • Server Alerts
+                    </div>
+                  </div>
+
+                  <!-- ACTION BUTTON PREVIEW -->
+                  <div class="discord-button-row mt-2">
+                    <button class="discord-button secondary" style="background: rgba(254,44,85,0.85); color: #fff;">
+                      🔴 Watch on TikTok ↗
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CONFIGURED TIKTOK TRACKERS TABLE -->
+        <div class="panel">
+          <div class="panel-header">
+            <div>
+              <h3>📋 Active TikTok Trackers</h3>
+              <p class="panel-subtitle">All creators monitored for live streams and new video uploads</p>
+            </div>
+            <button class="btn btn-sm btn-outline" id="refresh-tiktok-btn">🔄 Refresh Trackers</button>
+          </div>
+          <div class="panel-body">
+            <div class="table-responsive">
+              <table class="custom-table" id="tiktok-table">
+                <thead>
+                  <tr>
+                    <th>TikTok Creator</th>
+                    <th>Alert Channel</th>
+                    <th>Role Mention</th>
+                    <th>Monitored Events</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="tiktok-table-tbody">
+                  <tr><td colspan="6" class="text-center text-muted">Loading TikTok trackers...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB: BULK CHANNEL OPERATIONS STUDIO -->
+      <section id="tab-bulk-channels" class="tab-content">
+        <!-- METRICS ROW -->
+        <div class="metrics-row mb-4">
+          <div class="metric-card">
+            <div class="metric-icon-box blurple">📁</div>
+            <div class="metric-details">
+              <span class="metric-title">Total Channels</span>
+              <h3 class="metric-value" id="bulk-stat-total">0</h3>
+              <small class="text-muted">In Server</small>
+            </div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-icon-box purple">💬</div>
+            <div class="metric-details">
+              <span class="metric-title">Text Channels</span>
+              <h3 class="metric-value" id="bulk-stat-text">0</h3>
+              <small class="text-muted">Chat & Announcement</small>
+            </div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-icon-box green">🎙️</div>
+            <div class="metric-details">
+              <span class="metric-title">Voice Channels</span>
+              <h3 class="metric-value" id="bulk-stat-voice">0</h3>
+              <small class="text-muted">Voice & Stage</small>
+            </div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-icon-box amber">📂</div>
+            <div class="metric-details">
+              <span class="metric-title">Categories</span>
+              <h3 class="metric-value" id="bulk-stat-categories">0</h3>
+              <small class="text-muted">Channel Groups</small>
+            </div>
+          </div>
+        </div>
+
+        <!-- MAIN BULK OPERATIONS PANEL -->
+        <div class="panel">
+          <div class="panel-header">
+            <div>
+              <h3>⚡ Bulk Channel Manager & Multi-Channel Studio</h3>
+              <p class="panel-subtitle">Select up to 100+ channels simultaneously to delete, wipe, lock, unlock, move, or configure in bulk</p>
+            </div>
+            <div class="btn-group-row">
+              <button class="btn btn-sm btn-outline" id="bulk-btn-refresh">🔄 Refresh Channels</button>
+            </div>
+          </div>
+          <div class="panel-body">
+            <!-- FILTER & SEARCH TOOLBAR -->
+            <div class="bulk-toolbar mb-3">
+              <div class="form-row" style="align-items: center; gap: 10px;">
+                <div class="form-group flex-2 mb-0">
+                  <input type="text" id="bulk-filter-search" class="custom-input" placeholder="🔍 Search channels by name...">
+                </div>
+                <div class="form-group flex-1 mb-0">
+                  <select id="bulk-filter-category" class="custom-select">
+                    <option value="">-- All Categories --</option>
+                  </select>
+                </div>
+                <div class="form-group flex-1 mb-0">
+                  <select id="bulk-filter-type" class="custom-select">
+                    <option value="">-- All Types --</option>
+                    <option value="0">💬 Text Channels</option>
+                    <option value="2">🎙️ Voice Channels</option>
+                    <option value="5">📢 Announcement</option>
+                    <option value="4">📁 Categories Only</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="btn-group-row mt-3" style="gap: 8px;">
+                <button type="button" class="btn btn-sm btn-outline" id="bulk-btn-select-all">☑️ Select All Visible</button>
+                <button type="button" class="btn btn-sm btn-outline" id="bulk-btn-deselect-all">⬜ Clear Selection</button>
+                <button type="button" class="btn btn-sm btn-outline" id="bulk-btn-invert">🔄 Invert Selection</button>
+                <button type="button" class="btn btn-sm btn-outline" id="bulk-btn-select-text">💬 Select All Text</button>
+                <button type="button" class="btn btn-sm btn-outline" id="bulk-btn-select-voice">🎙️ Select All Voice</button>
+              </div>
+            </div>
+
+            <!-- FLOATING ACTION BAR -->
+            <div class="bulk-action-bar mb-3" id="bulk-action-bar" style="display: none;">
+              <div class="bulk-action-bar-left">
+                <span class="bulk-pill-count">Selected: <strong id="bulk-selected-count">0</strong> Channel(s)</span>
+              </div>
+              <div class="bulk-action-bar-right">
+                <button type="button" class="btn btn-sm btn-danger" id="bulk-act-delete" title="Delete selected channels">
+                  🗑️ Delete Selected
+                </button>
+                <button type="button" class="btn btn-sm" id="bulk-act-nuke" style="background: #f97316; color: #fff;" title="Wipe messages by recreating channels">
+                  💥 Nuke & Clean
+                </button>
+                <button type="button" class="btn btn-sm btn-outline" id="bulk-act-lock" title="Lock channels (@everyone cannot send)">
+                  🔒 Lock
+                </button>
+                <button type="button" class="btn btn-sm btn-outline" id="bulk-act-unlock" title="Unlock channels">
+                  🔓 Unlock
+                </button>
+                <button type="button" class="btn btn-sm btn-outline" id="bulk-act-move" title="Move to another category">
+                  📁 Move Category
+                </button>
+                <button type="button" class="btn btn-sm btn-outline" id="bulk-act-slowmode" title="Set slowmode cooldown">
+                  ⏳ Set Slowmode
+                </button>
+                <button type="button" class="btn btn-sm btn-outline" id="bulk-act-hide" title="Hide from @everyone">
+                  👁️ Hide
+                </button>
+                <button type="button" class="btn btn-sm btn-outline" id="bulk-act-unhide" title="Unhide for @everyone">
+                  👁️‍🗨️ Unhide
+                </button>
+              </div>
+            </div>
+
+            <!-- CHANNELS TABLE -->
+            <div class="table-responsive">
+              <table class="custom-table" id="bulk-channels-table">
+                <thead>
+                  <tr>
+                    <th style="width: 40px; text-align: center;">
+                      <input type="checkbox" id="bulk-header-checkbox">
+                    </th>
+                    <th>Channel Name</th>
+                    <th>Type</th>
+                    <th>Category</th>
+                    <th>Slowmode</th>
+                    <th>Status</th>
+                    <th>Channel ID</th>
+                  </tr>
+                </thead>
+                <tbody id="bulk-channels-tbody">
+                  <tr><td colspan="7" class="text-center text-muted">Loading channels...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- MODAL: MOVE CATEGORY -->
+        <div id="modal-bulk-move" class="modal-backdrop" style="display: none;">
+          <div class="modal-box">
+            <div class="modal-header">
+              <h3>📁 Move Selected Channels to Category</h3>
+              <button class="modal-close-btn" onclick="closeBulkModal('modal-bulk-move')">&times;</button>
+            </div>
+            <div class="modal-body">
+              <p class="text-muted mb-3">Choose the destination category for the selected <strong id="bulk-move-target-count">0</strong> channel(s):</p>
+              <div class="form-group">
+                <label for="bulk-target-category-select">Destination Category *</label>
+                <select id="bulk-target-category-select" class="custom-select">
+                  <option value="">-- No Category (Root Level) --</option>
+                </select>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-outline" onclick="closeBulkModal('modal-bulk-move')">Cancel</button>
+              <button type="button" class="btn btn-primary" id="bulk-confirm-move-btn">🚀 Move Channels Now</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- MODAL: SET SLOWMODE -->
+        <div id="modal-bulk-slowmode" class="modal-backdrop" style="display: none;">
+          <div class="modal-box">
+            <div class="modal-header">
+              <h3>⏳ Set Slowmode Cooldown</h3>
+              <button class="modal-close-btn" onclick="closeBulkModal('modal-bulk-slowmode')">&times;</button>
+            </div>
+            <div class="modal-body">
+              <p class="text-muted mb-3">Set slowmode for the selected <strong id="bulk-slowmode-target-count">0</strong> channel(s):</p>
+              <div class="form-group">
+                <label for="bulk-target-slowmode-select">Slowmode Cooldown Duration *</label>
+                <select id="bulk-target-slowmode-select" class="custom-select">
+                  <option value="0">Off (0s - No Cooldown)</option>
+                  <option value="5">5 Seconds</option>
+                  <option value="10">10 Seconds</option>
+                  <option value="15">15 Seconds</option>
+                  <option value="30">30 Seconds</option>
+                  <option value="60">1 Minute</option>
+                  <option value="120">2 Minutes</option>
+                  <option value="300">5 Minutes</option>
+                  <option value="600">10 Minutes</option>
+                  <option value="900">15 Minutes</option>
+                  <option value="3600">1 Hour</option>
+                  <option value="21600">6 Hours</option>
+                </select>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-outline" onclick="closeBulkModal('modal-bulk-slowmode')">Cancel</button>
+              <button type="button" class="btn btn-primary" id="bulk-confirm-slowmode-btn">💾 Apply Slowmode</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB: AUTO RESPONDER STUDIO (TRIGGER & TARGET REPLIES) -->
+      <section id="tab-autoresponder" class="tab-content">
+        <div class="studio-grid mb-4">
+          <!-- TRIGGER CREATOR PANEL -->
+          <div class="panel">
+            <div class="panel-header">
+              <div>
+                <h3 id="ar-form-header-title">🎯 Trigger & Target Auto-Message Creator</h3>
+                <p class="panel-subtitle">When members type the trigger word, the bot will automatically respond with custom text or embeds</p>
+              </div>
+            </div>
+            <div class="panel-body">
+              <form id="ar-form">
+                <input type="hidden" id="ar-edit-id" value="">
+
+                <div class="form-row">
+                  <div class="form-group flex-2">
+                    <label for="ar-trigger">Trigger Keyword / Phrase *</label>
+                    <input type="text" id="ar-trigger" class="custom-input" placeholder="e.g. rules, ip, discord, support, apply" required>
+                  </div>
+                  <div class="form-group flex-1">
+                    <label for="ar-match-type">Match Mode *</label>
+                    <select id="ar-match-type" class="custom-select">
+                      <option value="contains">Contains Keyword</option>
+                      <option value="exact">Exact Match Only</option>
+                      <option value="startswith">Starts With</option>
+                      <option value="endswith">Ends With</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-group flex-1">
+                    <label for="ar-reply-type">Response Format *</label>
+                    <select id="ar-reply-type" class="custom-select">
+                      <option value="embed">🎨 Rich Embed (With Banner & Thumb)</option>
+                      <option value="text">📝 Plain Text Message</option>
+                    </select>
+                  </div>
+                  <div class="form-group flex-1">
+                    <label for="ar-mention-role">Mention / Ping Role (Optional)</label>
+                    <select id="ar-mention-role" class="custom-select">
+                      <option value="">-- No Role Mention --</option>
+                    </select>
+                  </div>
+                </div>
+
+                <!-- EMBED SPECIFIC SETTINGS -->
+                <div id="ar-embed-fields">
+                  <div class="form-row">
+                    <div class="form-group flex-3">
+                      <label for="ar-title">Embed Title (Optional)</label>
+                      <input type="text" id="ar-title" class="custom-input" placeholder="e.g. 📜 Server Information & Rules">
+                    </div>
+                    <div class="form-group flex-1">
+                      <label for="ar-color">Embed Color</label>
+                      <input type="color" id="ar-color" class="color-picker-input" value="#5865F2">
+                    </div>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label for="ar-response">Response Message / Embed Body *</label>
+                  <textarea id="ar-response" class="custom-textarea" rows="4" placeholder="Hello {user}, welcome! Here is our information..." required></textarea>
+                  <div class="placeholder-tag-group mt-1">
+                    <span class="placeholder-tag" onclick="insertPlaceholder('ar-response', '{user}')">{user}</span>
+                    <span class="placeholder-tag" onclick="insertPlaceholder('ar-response', '{userName}')">{userName}</span>
+                    <span class="placeholder-tag" onclick="insertPlaceholder('ar-response', '{server}')">{server}</span>
+                    <span class="placeholder-tag" onclick="insertPlaceholder('ar-response', '{channel}')">{channel}</span>
+                    <span class="placeholder-tag" onclick="insertPlaceholder('ar-response', '{memberCount}')">{memberCount}</span>
+                  </div>
+                </div>
+
+                <div id="ar-media-fields">
+                  <div class="form-row">
+                    <div class="form-group flex-1">
+                      <label for="ar-banner">Banner Image URL (Large bottom image)</label>
+                      <input type="url" id="ar-banner" class="custom-input" placeholder="https://example.com/banner.png">
+                    </div>
+                    <div class="form-group flex-1">
+                      <label for="ar-thumbnail">Thumbnail URL (Corner image)</label>
+                      <input type="url" id="ar-thumbnail" class="custom-input" placeholder="https://example.com/thumb.png">
+                    </div>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="ar-footer">Footer Text (Optional)</label>
+                    <input type="text" id="ar-footer" class="custom-input" placeholder="{server} • Automated Trigger">
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-group flex-1">
+                    <label for="ar-cooldown">Trigger Cooldown per User</label>
+                    <select id="ar-cooldown" class="custom-select">
+                      <option value="0">No Cooldown (0s)</option>
+                      <option value="3">3 Seconds</option>
+                      <option value="5" selected>5 Seconds (Recommended)</option>
+                      <option value="10">10 Seconds</option>
+                      <option value="30">30 Seconds</option>
+                      <option value="60">1 Minute</option>
+                    </select>
+                  </div>
+                  <div class="form-group flex-1 d-flex align-items-center mt-3">
+                    <label class="checkbox-label">
+                      <input type="checkbox" id="ar-delete-trigger">
+                      <span>🗑️ Delete User's Trigger Message</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="btn-group-row mt-4">
+                  <button type="button" class="btn btn-outline flex-1" id="ar-reset-btn">
+                    🔄 Reset
+                  </button>
+                  <button type="submit" class="btn btn-primary flex-2" id="ar-submit-btn">
+                    💾 Save Auto-Responder Trigger
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <!-- LIVE PREVIEW PANEL -->
+          <div class="panel">
+            <div class="panel-header">
+              <h3>👀 Live Discord Message Preview</h3>
+              <span class="badge">REAL-TIME</span>
+            </div>
+            <div class="panel-body discord-preview-container">
+              <div class="discord-message">
+                <img src="https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0a6a49cf127bf92de1e2_icon_clyde_blurple_RGB.png" class="discord-avatar" alt="Avatar" id="ar-preview-avatar">
+                <div class="discord-content">
+                  <div class="discord-author">
+                    <span class="discord-name">AG System</span>
+                    <span class="discord-bot-tag">APP</span>
+                    <span class="discord-timestamp">Today at 12:00 PM</span>
+                  </div>
+
+                  <!-- ROLE MENTION PREVIEW -->
+                  <div class="discord-ping-line mb-1" id="ar-preview-role-ping" style="display: none;">
+                    <span class="discord-mention-pill" id="ar-preview-role-text">@Role</span>
+                  </div>
+
+                  <!-- PLAIN TEXT PREVIEW -->
+                  <div class="discord-text-body mb-2" id="ar-preview-text" style="display: none;">
+                    Hello @User, welcome!
+                  </div>
+
+                  <!-- EMBED PREVIEW -->
+                  <div class="discord-embed" id="ar-preview-embed" style="border-left-color: #5865F2;">
+                    <div class="discord-embed-grid">
+                      <div class="discord-embed-main">
+                        <div class="discord-embed-title" id="ar-preview-embed-title" style="display: none;">
+                          Trigger Title
+                        </div>
+                        <div class="discord-embed-desc" id="ar-preview-embed-desc">
+                          Hello @User, your response text will appear here in real-time...
+                        </div>
+                      </div>
+                      <img id="ar-preview-thumb" class="discord-embed-thumb" style="display: none;" src="" alt="Thumbnail">
+                    </div>
+                    <img id="ar-preview-banner" class="discord-embed-image" style="display: none;" src="" alt="Banner">
+                    <div class="discord-embed-footer" id="ar-preview-footer" style="display: none;">
+                      Server • Automated Trigger
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CONFIGURED RESPONDERS TABLE -->
+        <div class="panel">
+          <div class="panel-header">
+            <div>
+              <h3>📋 Active Server Auto-Responders</h3>
+              <p class="panel-subtitle">All configured keyword triggers and automated responses</p>
+            </div>
+            <button class="btn btn-sm btn-outline" id="refresh-ar-btn">🔄 Refresh Triggers</button>
+          </div>
+          <div class="panel-body">
+            <div class="table-responsive">
+              <table class="custom-table" id="ar-table">
+                <thead>
+                  <tr>
+                    <th>Trigger Keyword</th>
+                    <th>Match Mode</th>
+                    <th>Format</th>
+                    <th>Role Ping</th>
+                    <th>Response Preview</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="ar-table-body">
+                  <tr><td colspan="7" class="text-center text-muted">Loading auto-responders...</td></tr>
                 </tbody>
               </table>
             </div>
@@ -841,9 +2087,6 @@
                     <label for="ga-channel-select">Target Channel *</label>
                     <select id="ga-channel-select" class="custom-select" required></select>
                   </div>
-                </div>
-
-                <div>
                   <div class="form-row">
                     <div class="form-group flex-1">
                       <label for="ga-duration-input">Duration (in minutes) *</label>
@@ -855,9 +2098,26 @@
                     </div>
                   </div>
                 </div>
+
+                <div>
+                  <div class="form-group">
+                    <label for="ga-banner-input">Giveaway Banner Image URL (Optional)</label>
+                    <input type="url" id="ga-banner-input" class="custom-input" placeholder="https://example.com/giveaway-banner.png">
+                  </div>
+                  <div class="form-row">
+                    <div class="form-group flex-1">
+                      <label for="ga-thumb-input">Thumbnail URL (Optional)</label>
+                      <input type="url" id="ga-thumb-input" class="custom-input" placeholder="https://example.com/nitro.png">
+                    </div>
+                    <div class="form-group">
+                      <label for="ga-color-input">Embed Color</label>
+                      <input type="color" id="ga-color-input" class="color-picker-input" value="#5865F2">
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              <button type="submit" class="btn btn-success">🚀 Launch Giveaway Now</button>
+              <button type="submit" class="btn btn-success mt-2">🚀 Launch Giveaway Now</button>
             </form>
           </div>
         </div>
@@ -881,11 +2141,26 @@
                   <label for="br-title-input">Panel Title *</label>
                   <input type="text" id="br-title-input" class="custom-input" placeholder="e.g. Choose Your Notification Roles" required>
                 </div>
+                <div class="form-group">
+                  <label for="br-color-input">Color</label>
+                  <input type="color" id="br-color-input" class="color-picker-input" value="#5865F2">
+                </div>
               </div>
 
               <div class="form-group">
                 <label for="br-desc-input">Description / Instructions *</label>
                 <textarea id="br-desc-input" class="custom-textarea" rows="2" placeholder="Click the buttons below to assign or remove roles..." required></textarea>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group flex-1">
+                  <label for="br-banner-input">Banner Image URL (Optional)</label>
+                  <input type="url" id="br-banner-input" class="custom-input" placeholder="https://example.com/roles-banner.png">
+                </div>
+                <div class="form-group flex-1">
+                  <label for="br-thumb-input">Thumbnail URL (Optional)</label>
+                  <input type="url" id="br-thumb-input" class="custom-input" placeholder="https://example.com/logo.png">
+                </div>
               </div>
 
               <h4 class="form-subtitle mt-4">Assign Buttons & Roles</h4>
@@ -911,7 +2186,7 @@
                 </div>
               </div>
 
-              <button type="submit" class="btn btn-primary">🚀 Send Button Roles Panel</button>
+              <button type="submit" class="btn btn-primary mt-2">🚀 Send Button Roles Panel</button>
             </form>
           </div>
         </div>
@@ -944,14 +2219,193 @@
         </div>
       </section>
 
+      <!-- TAB: SERVER & DISCORD LOGS STUDIO -->
+      <section id="tab-discord-logs" class="tab-content">
+        <!-- 1. DISCORD LOGGING CONFIGURATION -->
+        <div class="panel mb-4">
+          <div class="panel-header">
+            <div>
+              <h3>📜 Discord Server Logging System</h3>
+              <p class="panel-subtitle">Automatically log all Discord activities to dedicated channels with rich formatted embeds</p>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="logs-toggle">
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div class="panel-body">
+            <form id="discord-logs-config-form">
+              <div class="dashboard-grid">
+                <!-- Channel Routing Section -->
+                <div>
+                  <h4 class="form-subtitle">📡 Log Channels Destination</h4>
+                  <div class="form-group">
+                    <label for="logs-general-channel">Default / Primary Log Channel *</label>
+                    <select id="logs-general-channel" class="custom-select" required>
+                      <option value="">Select Primary Channel...</option>
+                    </select>
+                    <small class="text-muted">Fallback channel if specialized channels below are not set.</small>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="logs-msg-channel">💬 Message Logs Channel (Deletes & Edits)</label>
+                    <select id="logs-msg-channel" class="custom-select">
+                      <option value="">Use Primary Channel (Default)</option>
+                    </select>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="logs-member-channel">👥 Member Logs Channel (Join, Leave, Nickname)</label>
+                    <select id="logs-member-channel" class="custom-select">
+                      <option value="">Use Primary Channel (Default)</option>
+                    </select>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="logs-mod-channel">🛡️ Mod Logs Channel (Bans, Kicks, Timeouts)</label>
+                    <select id="logs-mod-channel" class="custom-select">
+                      <option value="">Use Primary Channel (Default)</option>
+                    </select>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="logs-voice-channel">🔊 Voice Logs Channel (Join, Leave, Switch)</label>
+                    <select id="logs-voice-channel" class="custom-select">
+                      <option value="">Use Primary Channel (Default)</option>
+                    </select>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="logs-server-channel">⚙️ Server Logs Channel (Channels & Roles)</label>
+                    <select id="logs-server-channel" class="custom-select">
+                      <option value="">Use Primary Channel (Default)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <!-- Event Toggles Section -->
+                <div>
+                  <h4 class="form-subtitle">⚡ Active Event Triggers</h4>
+                  <div class="filter-toggle-list">
+                    <label class="filter-item">
+                      <span>🗑️ Deleted Messages</span>
+                      <input type="checkbox" id="logs-event-msg-delete" checked>
+                    </label>
+                    <label class="filter-item">
+                      <span>✏️ Edited Messages</span>
+                      <input type="checkbox" id="logs-event-msg-update" checked>
+                    </label>
+                    <label class="filter-item">
+                      <span>📥 Member Joins</span>
+                      <input type="checkbox" id="logs-event-member-join" checked>
+                    </label>
+                    <label class="filter-item">
+                      <span>📤 Member Leaves / Kicks</span>
+                      <input type="checkbox" id="logs-event-member-leave" checked>
+                    </label>
+                    <label class="filter-item">
+                      <span>👤 Member Updates (Nicknames, Roles, Timeouts)</span>
+                      <input type="checkbox" id="logs-event-member-update" checked>
+                    </label>
+                    <label class="filter-item">
+                      <span>🔨 Bans & Unbans</span>
+                      <input type="checkbox" id="logs-event-bans" checked>
+                    </label>
+                    <label class="filter-item">
+                      <span>🔊 Voice Join, Leave & Channel Switches</span>
+                      <input type="checkbox" id="logs-event-voice" checked>
+                    </label>
+                    <label class="filter-item">
+                      <span>📁 Channel Creates, Deletes & Updates</span>
+                      <input type="checkbox" id="logs-event-channels" checked>
+                    </label>
+                    <label class="filter-item">
+                      <span>🎭 Role Creates, Deletes & Updates</span>
+                      <input type="checkbox" id="logs-event-roles" checked>
+                    </label>
+                  </div>
+
+                  <div class="btn-group-row mt-4">
+                    <button type="submit" class="btn btn-primary flex-1">💾 Save Logging Settings</button>
+                    <button type="button" class="btn btn-outline" id="send-test-log-btn">🧪 Send Test Log</button>
+                  </div>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- 2. LIVE AUDIT & ACTIVITY STREAM -->
+        <div class="panel">
+          <div class="panel-header">
+            <div>
+              <h3>📡 Live Server Audit & Activity Stream</h3>
+              <p class="panel-subtitle">Real-time inspection of server events, moderation actions, message modifications, and voice traffic</p>
+            </div>
+            <div class="btn-group-row">
+              <button class="btn btn-sm btn-outline" id="refresh-audit-btn">🔄 Refresh</button>
+              <button class="btn btn-sm btn-outline" id="export-audit-btn">📥 Export JSON</button>
+              <button class="btn btn-sm btn-danger-outline" id="clear-audit-btn">🧹 Clear Logs</button>
+            </div>
+          </div>
+          <div class="panel-body">
+            <!-- Filter & Search Bar -->
+            <div class="audit-filter-bar mb-3">
+              <div class="category-pills" id="audit-category-pills">
+                <button class="pill-btn active" data-cat="ALL">All Events</button>
+                <button class="pill-btn" data-cat="MESSAGE">💬 Messages</button>
+                <button class="pill-btn" data-cat="MEMBER">👥 Members</button>
+                <button class="pill-btn" data-cat="MODERATION">🛡️ Moderation</button>
+                <button class="pill-btn" data-cat="VOICE">🔊 Voice</button>
+                <button class="pill-btn" data-cat="CHANNEL">📁 Channels</button>
+                <button class="pill-btn" data-cat="ROLE">🎭 Roles</button>
+                <button class="pill-btn" data-cat="AUTOMOD">🤖 AutoMod</button>
+                <button class="pill-btn" data-cat="COMMAND">⚡ Commands</button>
+              </div>
+              <div class="search-box">
+                <input type="text" id="audit-search-input" class="custom-input" placeholder="🔍 Search logs by user, keyword, or action...">
+              </div>
+            </div>
+
+            <!-- Log Stream Container -->
+            <div class="audit-stream-container" id="audit-logs-container">
+              <div class="text-center text-muted p-4">Loading real-time audit logs...</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <!-- TAB: LIVE CONSOLE LOGS -->
       <section id="tab-console-logs" class="tab-content">
         <div class="panel">
           <div class="panel-header">
-            <h3>💻 Live Bot Console Logs</h3>
-            <button class="btn btn-sm btn-outline" id="refresh-logs-btn">🔄 Refresh Logs</button>
+            <div>
+              <h3>💻 Live Bot Console Logs</h3>
+              <p class="panel-subtitle">Streaming execution logs, API calls, command dispatches, and runtime events</p>
+            </div>
+            <div class="btn-group-row">
+              <button class="btn btn-sm btn-outline" id="refresh-logs-btn">🔄 Refresh Logs</button>
+              <button class="btn btn-sm btn-outline" id="download-logs-btn">💾 Download</button>
+              <button class="btn btn-sm btn-danger-outline" id="clear-console-btn">🧹 Clear Console</button>
+            </div>
           </div>
           <div class="panel-body">
+            <!-- Console Filter Bar -->
+            <div class="audit-filter-bar mb-3">
+              <div class="category-pills" id="console-category-pills">
+                <button class="pill-btn active" data-type="ALL">All</button>
+                <button class="pill-btn" data-type="COMMAND">COMMAND</button>
+                <button class="pill-btn" data-type="MOD">MOD</button>
+                <button class="pill-btn" data-type="AUTOMOD">AUTOMOD</button>
+                <button class="pill-btn" data-type="CONFIG">CONFIG</button>
+                <button class="pill-btn" data-type="WARN">WARN</button>
+                <button class="pill-btn" data-type="ERROR">ERROR</button>
+              </div>
+              <div class="search-box">
+                <input type="text" id="console-search-input" class="custom-input" placeholder="🔍 Filter console logs...">
+              </div>
+            </div>
+
             <div class="terminal-box" id="terminal-logs">
               <div class="log-line text-muted">[SYSTEM] Connecting to live log stream...</div>
             </div>

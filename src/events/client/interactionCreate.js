@@ -351,21 +351,45 @@ module.exports = {
             status: 'open'
           });
 
+          const insideConf = guildConfig.ticket?.insideWelcome || {};
+          const welcomeTitle = (insideConf.title || '📩 Support Ticket #{ticketNumber}')
+            .replace(/{ticketNumber}/g, nextNum)
+            .replace(/{user}/g, interaction.user.tag)
+            .replace(/{server}/g, interaction.guild.name);
+
+          const welcomeDesc = (insideConf.description ||
+            `Hello {user}, welcome to your support ticket!\n\n` +
+            `• Please describe your issue or question in detail.\n` +
+            `• Our support team will assist you shortly.\n\n` +
+            `**Ticket Controls:** Use the buttons below to manage this ticket.`)
+            .replace(/{user}/g, `<@${interaction.user.id}>`)
+            .replace(/{userName}/g, interaction.user.username)
+            .replace(/{server}/g, interaction.guild.name)
+            .replace(/{ticketNumber}/g, nextNum);
+
+          const welcomeColor = insideConf.color || config.defaultColor;
+          const welcomeFooter = insideConf.footer || `${interaction.guild.name} • Support Ticket System`;
+
           const ticketEmbed = new EmbedBuilder()
-            .setColor(config.defaultColor)
-            .setTitle(`${config.emojis.ticket} Support Ticket #${nextNum}`)
-            .setDescription(
-              `Hello ${interaction.user}, welcome to your support ticket!\n\n` +
-              `• Please describe your issue or question in detail.\n` +
-              `• Our support team will assist you shortly.\n\n` +
-              `**Ticket Controls:** Use the buttons below to manage this ticket.`
-            )
+            .setColor(welcomeColor)
+            .setTitle(welcomeTitle)
+            .setDescription(welcomeDesc)
             .addFields(
               { name: '👤 Opened by', value: `<@${interaction.user.id}>`, inline: true },
               { name: '⏰ Created at', value: `<t:${Math.floor(Date.now() / 1000)}:R>`, inline: true }
             )
-            .setFooter({ text: 'Support Ticket System', iconURL: interaction.guild.iconURL() || undefined })
+            .setFooter({ text: welcomeFooter, iconURL: interaction.guild.iconURL() || undefined })
             .setTimestamp();
+
+          if (insideConf.thumbnail) {
+            try { ticketEmbed.setThumbnail(insideConf.thumbnail); } catch (e) {}
+          } else {
+            ticketEmbed.setThumbnail(interaction.user.displayAvatarURL({ dynamic: true, size: 256 }) || undefined);
+          }
+
+          if (insideConf.banner) {
+            try { ticketEmbed.setImage(insideConf.banner); } catch (e) {}
+          }
 
           const controlRow = new ActionRowBuilder().addComponents(
             new ButtonBuilder()
@@ -385,8 +409,10 @@ module.exports = {
               .setEmoji('🗑️')
           );
 
+          const pingText = insideConf.pingStaff !== false && staffRoleId ? `<@${interaction.user.id}> <@&${staffRoleId}>` : `<@${interaction.user.id}>`;
+
           await ticketChannel.send({
-            content: `${interaction.user} ${staffRoleId ? `<@&${staffRoleId}>` : ''}`,
+            content: pingText,
             embeds: [ticketEmbed],
             components: [controlRow]
           });

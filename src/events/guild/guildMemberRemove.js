@@ -1,12 +1,31 @@
 const { Events, EmbedBuilder } = require('discord.js');
 const db = require('../../database/db');
 const config = require('../../../config.json');
+const { sendGuildLog } = require('../../utils/logger');
+const { updateGuildStats } = require('../../utils/statbot');
 
 module.exports = {
   name: Events.GuildMemberRemove,
   async execute(member) {
     const guildId = member.guild.id;
     const guildConfig = db.getGuildConfig(guildId);
+
+    // StatBot Counter update
+    updateGuildStats(member.guild, false).catch(() => {});
+
+    // 0. Audit & Discord Logging
+    await sendGuildLog(member.guild, 'memberRemove', {
+      title: '📤 Member Left',
+      description: `**${member.user.tag}** left or was kicked/banned from **${member.guild.name}**.`,
+      color: config.errorColor || '#ED4245',
+      fields: [
+        { name: '👤 Member', value: `${member.user.tag} (\`${member.id}\`)`, inline: true },
+        { name: '🔢 Remaining Members', value: `#${member.guild.memberCount}`, inline: true }
+      ],
+      thumbnail: member.user.displayAvatarURL({ dynamic: true, size: 256 }),
+      user: { id: member.id, tag: member.user.tag },
+      details: { memberCount: member.guild.memberCount }
+    });
 
     const goodbyeConfig = guildConfig.goodbye;
     if (!goodbyeConfig?.enabled || !goodbyeConfig?.channelId) return;

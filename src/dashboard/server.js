@@ -4,6 +4,10 @@ const os = require('os');
 const { ChannelType, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, PermissionsBitField } = require('discord.js');
 const db = require('../database/db');
 const config = require('../../config.json');
+const { sendGuildLog } = require('../utils/logger');
+const { getGuildStats, updateGuildStats, setupStatChannels, deleteStatChannels } = require('../utils/statbot');
+const { formatVoiceTime, getActiveVoiceSession } = require('../utils/voiceTracker');
+const { testTikTokNotification, fetchTikTokProfile } = require('../utils/tiktokNotifier');
 
 function startDashboard(client) {
   const app = express();
@@ -11,6 +15,11 @@ function startDashboard(client) {
 
   app.use(express.json());
   app.use(express.static(path.join(__dirname, 'public')));
+
+  // Health check endpoint for uptime monitoring & hosting health checks
+  app.get('/health', (req, res) => {
+    res.status(200).json({ status: 'ok', uptime: process.uptime(), botStatus: client.isReady() ? 'connected' : 'connecting' });
+  });
 
   // -------------------------------------------------------------
   // API: BOT GENERAL STATS
@@ -476,23 +485,29 @@ function startDashboard(client) {
   app.post('/api/guild/:guildId/action/announce', async (req, res) => {
     try {
       const { guildId } = req.params;
-      const { channelId, title, message, ping, imageUrl } = req.body;
+      const { channelId, title, message, ping, imageUrl, thumbnailUrl, color, footer } = req.body;
       const guild = client.guilds.cache.get(guildId);
       if (!guild) return res.status(404).json({ error: 'Guild not found' });
 
       const channel = guild.channels.cache.get(channelId);
       if (!channel) return res.status(404).json({ error: 'Channel not found' });
 
+      let validColor = color || config.defaultColor;
+      if (!validColor.startsWith('#')) validColor = `#${validColor}`;
+
       const embed = new EmbedBuilder()
-        .setColor(config.defaultColor)
+        .setColor(validColor)
         .setTitle(`📢 ${title}`)
         .setDescription(message)
         .setAuthor({ name: guild.name, iconURL: guild.iconURL({ dynamic: true }) || undefined })
-        .setFooter({ text: 'Official Announcement via Dashboard' })
+        .setFooter({ text: footer || 'Official Announcement via Dashboard' })
         .setTimestamp();
 
       if (imageUrl) {
         try { embed.setImage(imageUrl); } catch (e) {}
+      }
+      if (thumbnailUrl) {
+        try { embed.setThumbnail(thumbnailUrl); } catch (e) {}
       }
 
       let content = undefined;
@@ -507,45 +522,335 @@ function startDashboard(client) {
     }
   });
 
-  // 16. DEPLOY TICKET PANEL
+  // 16. DEPLOY TICKET PANEL (ENHANCED WITH BANNER, THUMBNAIL, COLOR, BUTTONS)
   app.post('/api/guild/:guildId/action/ticket-setup', async (req, res) => {
     try {
       const { guildId } = req.params;
-      const { channelId, categoryId, staffRoleId, title, description } = req.body;
+      const {
+        channelId,
+        categoryId,
+        staffRoleId,
+        title,
+        description,
+        color,
+        banner,
+        thumbnail,
+        footer,
+        buttonLabel,
+        buttonEmoji,
+        buttonStyle
+      } = req.body;
+
       const guild = client.guilds.cache.get(guildId);
       if (!guild) return res.status(404).json({ error: 'Guild not found' });
 
       const channel = guild.channels.cache.get(channelId);
       if (!channel) return res.status(404).json({ error: 'Channel not found' });
 
+      const finalTitle = title || '📩 Support & Help Desk';
+      const finalDesc = description || 'Need assistance, want to report an issue, or talk to our staff team?\n\nClick the **Create Ticket** button below to open a private support room with our staff.';
+      let finalColor = color || config.defaultColor;
+      if (!finalColor.startsWith('#')) finalColor = `#${finalColor}`;
+      const finalFooter = footer || `${guild.name} • Official Support System`;
+      const finalBtnLabel = buttonLabel || 'Create Ticket';
+      const finalBtnEmoji = buttonEmoji || '📩';
+      const finalBtnStyle = buttonStyle || 'Primary';
+
+      const currentTicketConf = db.getGuildConfig(guildId).ticket || {};
+
       db.updateGuildConfig(guildId, 'ticket', {
-        categoryId: categoryId || null,
-        staffRoleId: staffRoleId || null
+        ...currentTicketConf,
+        enabled: true,
+        categoryId: categoryId || currentTicketConf.categoryId || null,
+        staffRoleId: staffRoleId || currentTicketConf.staffRoleId || null,
+        panel: {
+          title: finalTitle,
+          description: finalDesc,
+          color: finalColor,
+          banner: banner || '',
+          thumbnail: thumbnail || '',
+          footer: finalFooter,
+          buttonLabel: finalBtnLabel,
+          buttonEmoji: finalBtnEmoji,
+          buttonStyle: finalBtnStyle,
+          channelId: channel.id
+        }
       });
 
       const embed = new EmbedBuilder()
-        .setColor(config.defaultColor)
-        .setTitle(title || '📩 Support & Help Desk')
-        .setDescription(description || 'Click the **Create Ticket** button below to open a private support room with our staff team.')
+        .setColor(finalColor)
+        .setTitle(finalTitle)
+        .setDescription(finalDesc)
         .addFields(
           { name: '🔒 Private & Secure', value: 'Only you and server staff can view your ticket.', inline: true },
           { name: '⚡ Fast Support', value: 'A staff member will assist you shortly.', inline: true }
         )
-        .setThumbnail(guild.iconURL({ dynamic: true, size: 256 }) || undefined)
-        .setFooter({ text: `${guild.name} • Official Support System` })
+        .setFooter({ text: finalFooter, iconURL: guild.iconURL() || undefined })
         .setTimestamp();
 
-      const row = new ActionRowBuilder().addComponents(
-        new ButtonBuilder()
-          .setCustomId('create_ticket_btn')
-          .setLabel('Create Ticket')
-          .setStyle(ButtonStyle.Primary)
-          .setEmoji('📩')
-      );
+      if (thumbnail) {
+        try { embed.setThumbnail(thumbnail); } catch (e) {}
+      } else {
+        embed.setThumbnail(guild.iconURL({ dynamic: true, size: 256 }) || undefined);
+      }
+
+      if (banner) {
+        try { embed.setImage(banner); } catch (e) {}
+      }
+
+      const styleMap = {
+        Primary: ButtonStyle.Primary,
+        Success: ButtonStyle.Success,
+        Danger: ButtonStyle.Danger,
+        Secondary: ButtonStyle.Secondary
+      };
+
+      const btn = new ButtonBuilder()
+        .setCustomId('create_ticket_btn')
+        .setLabel(finalBtnLabel)
+        .setStyle(styleMap[finalBtnStyle] || ButtonStyle.Primary);
+
+      if (finalBtnEmoji) {
+        try { btn.setEmoji(finalBtnEmoji); } catch (e) {}
+      }
+
+      const row = new ActionRowBuilder().addComponents(btn);
 
       await channel.send({ embeds: [embed], components: [row] });
-      db.addLog('TICKET', `Ticket panel posted in #${channel.name}`);
+      db.addLog('TICKET', `Ticket panel deployed to #${channel.name}`);
       res.json({ success: true, message: `Ticket panel deployed to #${channel.name}` });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // TICKET CONFIGURATION (PANEL + INSIDE WELCOME)
+  app.post('/api/guild/:guildId/ticket/config', (req, res) => {
+    try {
+      const { guildId } = req.params;
+      const { categoryId, staffRoleId, panel, insideWelcome } = req.body;
+
+      const current = db.getGuildConfig(guildId).ticket || {};
+      const updated = db.updateGuildConfig(guildId, 'ticket', {
+        ...current,
+        categoryId: categoryId !== undefined ? categoryId : current.categoryId,
+        staffRoleId: staffRoleId !== undefined ? staffRoleId : current.staffRoleId,
+        panel: panel ? { ...current.panel, ...panel } : current.panel,
+        insideWelcome: insideWelcome ? { ...current.insideWelcome, ...insideWelcome } : current.insideWelcome
+      });
+
+      db.addLog('CONFIG', `Updated ticket system configuration for guild ${guildId}`);
+      res.json({ success: true, ticket: updated });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // GET ALL TICKETS WITH RICH ENRICHED DATA
+  app.get('/api/guild/:guildId/tickets', async (req, res) => {
+    try {
+      const { guildId } = req.params;
+      const guild = client.guilds.cache.get(guildId);
+      const rawTickets = db.getAllGuildTickets(guildId);
+
+      const list = await Promise.all(
+        Object.entries(rawTickets).map(async ([channelId, data]) => {
+          let channelName = `ticket-${data.ticketNumber || '0000'}`;
+          let existsOnDiscord = false;
+
+          if (guild) {
+            const ch = guild.channels.cache.get(channelId);
+            if (ch) {
+              channelName = ch.name;
+              existsOnDiscord = true;
+            }
+          }
+
+          let ownerTag = `User (${data.ownerId || 'N/A'})`;
+          let ownerAvatar = null;
+          if (data.ownerId) {
+            try {
+              const u = await client.users.fetch(data.ownerId).catch(() => null);
+              if (u) {
+                ownerTag = u.tag;
+                ownerAvatar = u.displayAvatarURL({ size: 128 });
+              }
+            } catch (e) {}
+          }
+
+          let claimedByTag = null;
+          if (data.claimedBy) {
+            try {
+              const cu = await client.users.fetch(data.claimedBy).catch(() => null);
+              if (cu) claimedByTag = cu.tag;
+            } catch (e) {}
+          }
+
+          return {
+            channelId,
+            channelName,
+            existsOnDiscord,
+            ownerId: data.ownerId,
+            ownerTag,
+            ownerAvatar,
+            ticketNumber: data.ticketNumber || '#',
+            status: data.status || (existsOnDiscord ? 'open' : 'closed'),
+            claimedBy: data.claimedBy,
+            claimedByTag,
+            createdAt: data.createdAt || Date.now(),
+            closedAt: data.closedAt || null
+          };
+        })
+      );
+
+      // Sort newest first
+      list.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+
+      res.json(list);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // TICKET ACTIONS FROM DASHBOARD (CLOSE, REOPEN, CLAIM, DELETE, ADD-USER, REMOVE-USER, SEND-MESSAGE)
+  app.post('/api/guild/:guildId/ticket/:channelId/action', async (req, res) => {
+    try {
+      const { guildId, channelId } = req.params;
+      const { action, userId, message } = req.body;
+      const guild = client.guilds.cache.get(guildId);
+      if (!guild) return res.status(404).json({ error: 'Guild not found' });
+
+      const channel = guild.channels.cache.get(channelId);
+      const ticketData = db.getTicket(guildId, channelId) || {};
+
+      if (action === 'close') {
+        if (channel && ticketData.ownerId) {
+          await channel.permissionOverwrites.edit(ticketData.ownerId, { SendMessages: false }).catch(() => {});
+        }
+
+        db.saveTicket(guildId, channelId, {
+          ...ticketData,
+          status: 'closed',
+          closedBy: client.user.id,
+          closedAt: Date.now()
+        });
+
+        if (channel) {
+          const embed = new EmbedBuilder()
+            .setColor(config.warningColor || '#FEE75C')
+            .setTitle('🔒 Ticket Closed via Dashboard')
+            .setDescription('This ticket has been closed by server administrators from the Web Dashboard.')
+            .setTimestamp();
+          await channel.send({ embeds: [embed] }).catch(() => {});
+        }
+
+        db.addLog('TICKET', `Ticket in #${channel?.name || channelId} closed via Dashboard`);
+        return res.json({ success: true, message: 'Ticket closed successfully' });
+      }
+
+      if (action === 'reopen') {
+        if (channel && ticketData.ownerId) {
+          await channel.permissionOverwrites.edit(ticketData.ownerId, { SendMessages: true, ViewChannel: true }).catch(() => {});
+        }
+
+        db.saveTicket(guildId, channelId, {
+          ...ticketData,
+          status: 'open'
+        });
+
+        if (channel) {
+          const embed = new EmbedBuilder()
+            .setColor(config.successColor || '#57F287')
+            .setTitle('🔓 Ticket Reopened via Dashboard')
+            .setDescription('This ticket has been reopened from the Web Dashboard.')
+            .setTimestamp();
+          await channel.send({ embeds: [embed] }).catch(() => {});
+        }
+
+        db.addLog('TICKET', `Ticket in #${channel?.name || channelId} reopened via Dashboard`);
+        return res.json({ success: true, message: 'Ticket reopened successfully' });
+      }
+
+      if (action === 'claim') {
+        db.saveTicket(guildId, channelId, {
+          ...ticketData,
+          claimedBy: client.user.id
+        });
+
+        if (channel) {
+          const embed = new EmbedBuilder()
+            .setColor(config.successColor || '#57F287')
+            .setDescription(`📌 **Ticket Claimed**: Server Management Team via Dashboard will be handling this ticket.`)
+            .setTimestamp();
+          await channel.send({ embeds: [embed] }).catch(() => {});
+        }
+
+        db.addLog('TICKET', `Ticket in #${channel?.name || channelId} claimed via Dashboard`);
+        return res.json({ success: true, message: 'Ticket claimed successfully' });
+      }
+
+      if (action === 'delete') {
+        db.deleteTicket(guildId, channelId);
+        if (channel) {
+          await channel.delete('Deleted via Web Dashboard').catch(() => {});
+        }
+        db.addLog('TICKET', `Ticket channel #${channel?.name || channelId} deleted via Dashboard`);
+        return res.json({ success: true, message: 'Ticket deleted successfully' });
+      }
+
+      if (action === 'send-message') {
+        if (!channel) return res.status(404).json({ error: 'Ticket channel no longer exists on Discord' });
+        if (!message || message.trim() === '') return res.status(400).json({ error: 'Message cannot be empty' });
+
+        const embed = new EmbedBuilder()
+          .setColor(config.defaultColor || '#5865F2')
+          .setAuthor({ name: 'Staff Support (Dashboard)', iconURL: client.user.displayAvatarURL() })
+          .setDescription(message)
+          .setFooter({ text: 'Official Support Message' })
+          .setTimestamp();
+
+        await channel.send({ embeds: [embed] });
+        db.addLog('TICKET', `Sent staff message to #${channel.name} from Dashboard`);
+        return res.json({ success: true, message: `Message sent to #${channel.name}` });
+      }
+
+      if (action === 'add-user') {
+        if (!channel) return res.status(404).json({ error: 'Channel not found' });
+        if (!userId) return res.status(400).json({ error: 'User ID is required' });
+
+        await channel.permissionOverwrites.edit(userId, {
+          ViewChannel: true,
+          SendMessages: true,
+          ReadMessageHistory: true,
+          AttachFiles: true,
+          EmbedLinks: true
+        });
+
+        const embed = new EmbedBuilder()
+          .setColor(config.successColor)
+          .setDescription(`➕ Added <@${userId}> to this ticket via Dashboard.`)
+          .setTimestamp();
+        await channel.send({ embeds: [embed] });
+
+        return res.json({ success: true, message: `Added user ${userId} to ticket` });
+      }
+
+      if (action === 'remove-user') {
+        if (!channel) return res.status(404).json({ error: 'Channel not found' });
+        if (!userId) return res.status(400).json({ error: 'User ID is required' });
+
+        await channel.permissionOverwrites.edit(userId, { ViewChannel: false });
+
+        const embed = new EmbedBuilder()
+          .setColor(config.warningColor)
+          .setDescription(`➖ Removed <@${userId}> from this ticket via Dashboard.`)
+          .setTimestamp();
+        await channel.send({ embeds: [embed] });
+
+        return res.json({ success: true, message: `Removed user ${userId} from ticket` });
+      }
+
+      res.status(400).json({ error: 'Unknown ticket action' });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
@@ -723,7 +1028,7 @@ function startDashboard(client) {
   app.post('/api/guild/:guildId/giveaway', async (req, res) => {
     try {
       const { guildId } = req.params;
-      const { channelId, prize, durationMinutes, winnerCount } = req.body;
+      const { channelId, prize, durationMinutes, winnerCount, banner, thumbnail, color } = req.body;
 
       const guild = client.guilds.cache.get(guildId);
       if (!guild) return res.status(404).json({ error: 'Guild not found' });
@@ -736,8 +1041,11 @@ function startDashboard(client) {
       const endsTimestamp = Math.floor(endsAt / 1000);
       const winners = parseInt(winnerCount, 10) || 1;
 
+      let validColor = color || config.defaultColor;
+      if (!validColor.startsWith('#')) validColor = `#${validColor}`;
+
       const giveawayEmbed = new EmbedBuilder()
-        .setColor(config.defaultColor)
+        .setColor(validColor)
         .setTitle(`🎉 GIVEAWAY: ${prize}`)
         .setDescription(
           `Click the **🎉 Enter** button below to participate!\n\n` +
@@ -746,8 +1054,15 @@ function startDashboard(client) {
           `• **Ends:** <t:${endsTimestamp}:R> (<t:${endsTimestamp}:f>)\n` +
           `• **Entries:** \`0\``
         )
-        .setFooter({ text: 'Giveaway System • Good Luck!' })
+        .setFooter({ text: `${guild.name} • Giveaway System • Good Luck!` })
         .setTimestamp(endsAt);
+
+      if (banner) {
+        try { giveawayEmbed.setImage(banner); } catch (e) {}
+      }
+      if (thumbnail) {
+        try { giveawayEmbed.setThumbnail(thumbnail); } catch (e) {}
+      }
 
       const row = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
@@ -778,7 +1093,7 @@ function startDashboard(client) {
   app.post('/api/guild/:guildId/button-role', async (req, res) => {
     try {
       const { guildId } = req.params;
-      const { channelId, title, description, roles } = req.body;
+      const { channelId, title, description, roles, banner, thumbnail, color } = req.body;
 
       const guild = client.guilds.cache.get(guildId);
       if (!guild) return res.status(404).json({ error: 'Guild not found' });
@@ -786,12 +1101,22 @@ function startDashboard(client) {
       const channel = guild.channels.cache.get(channelId);
       if (!channel) return res.status(404).json({ error: 'Channel not found' });
 
+      let validColor = color || config.defaultColor;
+      if (!validColor.startsWith('#')) validColor = `#${validColor}`;
+
       const embed = new EmbedBuilder()
-        .setColor(config.defaultColor)
+        .setColor(validColor)
         .setTitle(`🎭 ${title}`)
         .setDescription(description + '\n\n' + roles.map(r => `• Click below to toggle <@&${r.roleId}>`).join('\n'))
         .setFooter({ text: `${guild.name} • Self Role System` })
         .setTimestamp();
+
+      if (banner) {
+        try { embed.setImage(banner); } catch (e) {}
+      }
+      if (thumbnail) {
+        try { embed.setThumbnail(thumbnail); } catch (e) {}
+      }
 
       const row = new ActionRowBuilder();
       const styles = [ButtonStyle.Primary, ButtonStyle.Success, ButtonStyle.Secondary, ButtonStyle.Danger];
@@ -1009,6 +1334,669 @@ function startDashboard(client) {
       }
 
       res.json({ success: true, message: 'Ticket deleted successfully' });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // -------------------------------------------------------------
+  // API: STATBOT & SERVER STAT COUNTERS
+  // -------------------------------------------------------------
+  app.get('/api/guild/:guildId/statbot', async (req, res) => {
+    try {
+      const { guildId } = req.params;
+      const guild = client.guilds.cache.get(guildId);
+      if (!guild) return res.status(404).json({ error: 'Guild not found' });
+
+      const conf = db.getStatBotConfig(guildId);
+      const stats = await getGuildStats(guild);
+
+      res.json({
+        config: conf,
+        stats: stats
+      });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post('/api/guild/:guildId/statbot/config', (req, res) => {
+    try {
+      const { guildId } = req.params;
+      const { enabled, channels } = req.body;
+
+      const current = db.getStatBotConfig(guildId) || {};
+      const updated = db.updateStatBotConfig(guildId, {
+        enabled: enabled !== undefined ? Boolean(enabled) : current.enabled,
+        channels: channels ? { ...current.channels, ...channels } : current.channels
+      });
+
+      db.addLog('STATBOT', `Updated StatBot config for guild ${guildId}`);
+      res.json({ success: true, statbot: updated });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post('/api/guild/:guildId/statbot/setup', async (req, res) => {
+    try {
+      const { guildId } = req.params;
+      const guild = client.guilds.cache.get(guildId);
+      if (!guild) return res.status(404).json({ error: 'Guild not found' });
+
+      const result = await setupStatChannels(guild, req.body || {});
+      res.json({ success: true, message: 'StatBot channels setup complete!', result });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post('/api/guild/:guildId/statbot/update', async (req, res) => {
+    try {
+      const { guildId } = req.params;
+      const guild = client.guilds.cache.get(guildId);
+      if (!guild) return res.status(404).json({ error: 'Guild not found' });
+
+      const result = await updateGuildStats(guild, true);
+      res.json({ success: true, message: 'StatBot counters synchronized!', result });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post('/api/guild/:guildId/statbot/delete', async (req, res) => {
+    try {
+      const { guildId } = req.params;
+      const guild = client.guilds.cache.get(guildId);
+      if (!guild) return res.status(404).json({ error: 'Guild not found' });
+
+      await deleteStatChannels(guild);
+      res.json({ success: true, message: 'StatBot channels deleted successfully' });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // -------------------------------------------------------------
+  // API: GUILD LOGGING CONFIGURATION & AUDIT LOGS
+  // -------------------------------------------------------------
+  app.get('/api/guild/:guildId/logs/config', (req, res) => {
+    try {
+      const { guildId } = req.params;
+      const guildConfig = db.getGuildConfig(guildId);
+      res.json(guildConfig.logs || {});
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post('/api/guild/:guildId/logs/config', (req, res) => {
+    try {
+      const { guildId } = req.params;
+      const {
+        enabled,
+        channelId,
+        msgChannelId,
+        memberChannelId,
+        voiceChannelId,
+        modChannelId,
+        serverChannelId,
+        events
+      } = req.body;
+
+      const updated = db.updateGuildConfig(guildId, 'logs', {
+        enabled: Boolean(enabled),
+        channelId: channelId || null,
+        msgChannelId: msgChannelId || null,
+        memberChannelId: memberChannelId || null,
+        voiceChannelId: voiceChannelId || null,
+        modChannelId: modChannelId || null,
+        serverChannelId: serverChannelId || null,
+        events: events || {}
+      });
+
+      db.addLog('CONFIG', `Logging settings updated for guild ${guildId}`);
+      res.json({ success: true, logs: updated });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post('/api/guild/:guildId/logs/test', async (req, res) => {
+    try {
+      const { guildId } = req.params;
+      const guild = client.guilds.cache.get(guildId);
+      if (!guild) return res.status(404).json({ error: 'Guild not found' });
+
+      const guildConfig = db.getGuildConfig(guildId);
+      if (!guildConfig.logs?.channelId) {
+        return res.status(400).json({ error: 'Please select at least a General / Default Log Channel first!' });
+      }
+
+      await sendGuildLog(guild, 'command', {
+        title: '🧪 Dashboard Test Log',
+        description: 'This is a test audit log dispatched from the **Web Dashboard** to verify Discord log channel routing.',
+        color: config.defaultColor || '#5865F2',
+        fields: [
+          { name: '🌐 Source', value: 'Web Dashboard Control Panel', inline: true },
+          { name: '⚡ Pipeline Status', value: '`100% Operational`', inline: true }
+        ]
+      });
+
+      res.json({ success: true, message: 'Test log dispatched successfully to Discord!' });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get('/api/guild/:guildId/logs/audit', (req, res) => {
+    try {
+      const { guildId } = req.params;
+      const category = req.query.category || 'ALL';
+      const limit = parseInt(req.query.limit, 10) || 100;
+      const logs = db.getServerLogs(guildId, category, limit);
+      res.json(logs);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.delete('/api/guild/:guildId/logs/audit', (req, res) => {
+    try {
+      const { guildId } = req.params;
+      db.clearServerLogs(guildId);
+      res.json({ success: true, message: 'Audit logs cleared successfully.' });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // -------------------------------------------------------------
+  // API: USER ACTIVITY & VOICE TRACKER (STATBOT STYLE)
+  // -------------------------------------------------------------
+  app.get('/api/guild/:guildId/user-stats', (req, res) => {
+    try {
+      const { guildId } = req.params;
+      const guild = client.guilds.cache.get(guildId);
+      if (!guild) return res.status(404).json({ error: 'Guild not found' });
+
+      const topVoice = db.getVoiceLeaderboard(guildId, 50);
+      const topMessages = db.getMessagesLeaderboard(guildId, 50);
+
+      // Helper to enrich member item with Discord tag and avatar
+      const enrichItem = (item) => {
+        const member = guild.members.cache.get(item.userId);
+        const active = getActiveVoiceSession(guildId, item.userId);
+        const voiceChannel = active ? guild.channels.cache.get(active.channelId) : null;
+
+        const effectiveVoiceSec = (item.voiceSeconds || 0) + (active?.currentSessionSeconds || 0);
+
+        return {
+          ...item,
+          voiceSeconds: effectiveVoiceSec,
+          formattedVoiceTime: formatVoiceTime(effectiveVoiceSec),
+          username: member ? member.user.username : 'Unknown Member',
+          tag: member ? member.user.tag : `User#${item.userId.slice(-4)}`,
+          avatar: member ? member.user.displayAvatarURL({ dynamic: true, size: 128 }) : 'https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0a6a49cf127bf92de1e2_icon_clyde_blurple_RGB.png',
+          inVoice: Boolean(active),
+          voiceChannelName: voiceChannel ? voiceChannel.name : null
+        };
+      };
+
+      const enrichedVoice = topVoice.map(enrichItem);
+      const enrichedMessages = topMessages.map(enrichItem);
+
+      // Totals
+      const fullConfig = db.getGuildConfig(guildId);
+      const userStatsObj = fullConfig.userStats || {};
+      let totalVoiceSec = 0;
+      let totalMsgs = 0;
+
+      Object.values(userStatsObj).forEach(u => {
+        totalVoiceSec += (u.voiceSeconds || 0);
+        totalMsgs += (u.messagesCount || 0);
+      });
+
+      // Active voice members count
+      let currentActiveVoiceCount = 0;
+      if (guild.channels && guild.channels.cache) {
+        guild.channels.cache.forEach(ch => {
+          if (ch.isVoiceBased && ch.isVoiceBased() && ch.members) {
+            currentActiveVoiceCount += ch.members.filter(m => !m.user.bot).size;
+          }
+        });
+      }
+
+      res.json({
+        totals: {
+          totalVoiceSeconds: totalVoiceSec,
+          formattedTotalVoice: formatVoiceTime(totalVoiceSec),
+          totalMessages: totalMsgs,
+          trackedUsersCount: Object.keys(userStatsObj).length,
+          activeVoiceCount: currentActiveVoiceCount
+        },
+        topVoice: enrichedVoice,
+        topMessages: enrichedMessages
+      });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get('/api/guild/:guildId/user-stats/:userId', (req, res) => {
+    try {
+      const { guildId, userId } = req.params;
+      const guild = client.guilds.cache.get(guildId);
+      if (!guild) return res.status(404).json({ error: 'Guild not found' });
+
+      const stats = db.getUserStats(guildId, userId);
+      const active = getActiveVoiceSession(guildId, userId);
+      const member = guild.members.cache.get(userId);
+
+      const effectiveVoiceSec = (stats.voiceSeconds || 0) + (active?.currentSessionSeconds || 0);
+
+      res.json({
+        userId,
+        stats: {
+          ...stats,
+          voiceSeconds: effectiveVoiceSec,
+          formattedVoiceTime: formatVoiceTime(effectiveVoiceSec)
+        },
+        inVoice: Boolean(active),
+        member: member ? {
+          username: member.user.username,
+          tag: member.user.tag,
+          avatar: member.user.displayAvatarURL({ dynamic: true, size: 256 })
+        } : null
+      });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post('/api/guild/:guildId/user-stats/reset', (req, res) => {
+    try {
+      const { guildId } = req.params;
+      const { userId, type } = req.body;
+
+      if (userId) {
+        db.resetUserStats(guildId, userId, type || 'all');
+        res.json({ success: true, message: `Statistics reset for user ${userId}.` });
+      } else {
+        db.resetGuildStats(guildId, type || 'all');
+        res.json({ success: true, message: `Server statistics (${type || 'all'}) reset successfully.` });
+      }
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // -------------------------------------------------------------
+  // API: TRIGGER AUTO-RESPONDER ENGINE
+  // -------------------------------------------------------------
+  app.get('/api/guild/:guildId/autoresponders', (req, res) => {
+    try {
+      const { guildId } = req.params;
+      const responders = db.getAutoResponders(guildId);
+      res.json(responders);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post('/api/guild/:guildId/autoresponder', (req, res) => {
+    try {
+      const { guildId } = req.params;
+      const {
+        id,
+        trigger,
+        matchType,
+        replyType,
+        response,
+        embedTitle,
+        embedColor,
+        thumbnail,
+        banner,
+        footer,
+        mentionRoleId,
+        deleteTrigger,
+        cooldown,
+        enabled
+      } = req.body;
+
+      if (!trigger || !trigger.trim()) {
+        return res.status(400).json({ error: 'Trigger keyword/phrase is required.' });
+      }
+      if (!response || !response.trim()) {
+        return res.status(400).json({ error: 'Response content is required.' });
+      }
+
+      const saved = db.saveAutoResponder(guildId, id, {
+        trigger,
+        matchType,
+        replyType,
+        response,
+        embedTitle,
+        embedColor,
+        thumbnail,
+        banner,
+        footer,
+        mentionRoleId,
+        deleteTrigger,
+        cooldown,
+        enabled
+      });
+
+      res.json({ success: true, message: 'Auto-responder trigger saved successfully!', responder: saved });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post('/api/guild/:guildId/autoresponder/:id/toggle', (req, res) => {
+    try {
+      const { guildId, id } = req.params;
+      const { enabled } = req.body;
+      const updated = db.toggleAutoResponder(guildId, id, enabled);
+      if (!updated) return res.status(404).json({ error: 'Auto-responder not found.' });
+
+      res.json({ success: true, message: `Auto-responder ${updated.enabled ? 'enabled' : 'disabled'}.`, responder: updated });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // -------------------------------------------------------------
+  // API: BULK CHANNEL OPERATIONS STUDIO
+  // -------------------------------------------------------------
+  app.get('/api/guild/:guildId/channels/detailed', (req, res) => {
+    try {
+      const { guildId } = req.params;
+      const guild = client.guilds.cache.get(guildId);
+      if (!guild) return res.status(404).json({ error: 'Guild not found' });
+
+      const channels = [];
+      const categories = [];
+
+      guild.channels.cache.forEach(ch => {
+        if (ch.type === ChannelType.GuildCategory) {
+          categories.push({
+            id: ch.id,
+            name: ch.name,
+            position: ch.position,
+            childrenCount: guild.channels.cache.filter(c => c.parentId === ch.id).size
+          });
+        }
+      });
+
+      guild.channels.cache.forEach(ch => {
+        const parentCat = ch.parentId ? guild.channels.cache.get(ch.parentId) : null;
+        let typeName = 'Text';
+        let icon = '💬';
+
+        if (ch.type === ChannelType.GuildVoice) {
+          typeName = 'Voice';
+          icon = '🎙️';
+        } else if (ch.type === ChannelType.GuildAnnouncement) {
+          typeName = 'Announcement';
+          icon = '📢';
+        } else if (ch.type === ChannelType.GuildCategory) {
+          typeName = 'Category';
+          icon = '📁';
+        } else if (ch.type === ChannelType.GuildStageVoice) {
+          typeName = 'Stage';
+          icon = '🎭';
+        }
+
+        // Check if locked
+        const overwrites = ch.permissionOverwrites?.cache?.get(guild.roles.everyone?.id);
+        const isLocked = overwrites ? overwrites.deny?.has(PermissionsBitField.Flags.SendMessages) : false;
+        const isHidden = overwrites ? overwrites.deny?.has(PermissionsBitField.Flags.ViewChannel) : false;
+
+        channels.push({
+          id: ch.id,
+          name: ch.name,
+          type: ch.type,
+          typeName,
+          icon,
+          parentId: ch.parentId || null,
+          parentName: parentCat ? parentCat.name : 'No Category',
+          position: ch.position,
+          slowmode: ch.rateLimitPerUser || 0,
+          isLocked: Boolean(isLocked),
+          isHidden: Boolean(isHidden)
+        });
+      });
+
+      // Sort categories then channels by position
+      categories.sort((a, b) => a.position - b.position);
+      channels.sort((a, b) => {
+        if (a.parentId === b.parentId) return a.position - b.position;
+        return (a.parentName || '').localeCompare(b.parentName || '');
+      });
+
+      res.json({
+        totalChannels: channels.length,
+        categories,
+        channels
+      });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post('/api/guild/:guildId/channels/bulk-action', async (req, res) => {
+    try {
+      const { guildId } = req.params;
+      const { channelIds, action, options } = req.body;
+      const guild = client.guilds.cache.get(guildId);
+      if (!guild) return res.status(404).json({ error: 'Guild not found' });
+
+      if (!channelIds || !Array.isArray(channelIds) || channelIds.length === 0) {
+        return res.status(400).json({ error: 'No channels selected for bulk action.' });
+      }
+
+      let processedCount = 0;
+      let failedCount = 0;
+      const errors = [];
+
+      for (const channelId of channelIds) {
+        const channel = guild.channels.cache.get(channelId);
+        if (!channel) {
+          failedCount++;
+          continue;
+        }
+
+        try {
+          // 1. DELETE
+          if (action === 'delete') {
+            await channel.delete('Bulk deleted via Web Dashboard');
+            processedCount++;
+          }
+          // 2. NUKE
+          else if (action === 'nuke') {
+            if (channel.type === ChannelType.GuildText || channel.type === ChannelType.GuildAnnouncement) {
+              const position = channel.position;
+              const topic = channel.topic;
+              const parentId = channel.parentId;
+
+              const newChan = await channel.clone({
+                name: channel.name,
+                permissions: channel.permissionOverwrites.cache,
+                topic: topic,
+                position: position,
+                parent: parentId,
+                reason: 'Bulk nuked via Web Dashboard'
+              });
+              await channel.delete('Bulk nuked via Web Dashboard');
+              await newChan.send({
+                embeds: [
+                  new EmbedBuilder()
+                    .setColor(config.errorColor || '#ED4245')
+                    .setTitle('💥 Channel Nuked & Cleared')
+                    .setDescription('This channel was wiped and recreated via **Web Dashboard Bulk Channel Studio**.')
+                    .setTimestamp()
+                ]
+              }).catch(() => {});
+              processedCount++;
+            }
+          }
+          // 3. LOCK
+          else if (action === 'lock') {
+            await channel.permissionOverwrites.edit(guild.roles.everyone, {
+              SendMessages: false,
+              AddReactions: false
+            });
+            processedCount++;
+          }
+          // 4. UNLOCK
+          else if (action === 'unlock') {
+            await channel.permissionOverwrites.edit(guild.roles.everyone, {
+              SendMessages: null,
+              AddReactions: null
+            });
+            processedCount++;
+          }
+          // 5. SLOWMODE
+          else if (action === 'slowmode') {
+            const seconds = Number(options?.slowmodeSeconds) || 0;
+            if (channel.setRateLimitPerUser) {
+              await channel.setRateLimitPerUser(seconds, 'Bulk slowmode via Web Dashboard');
+              processedCount++;
+            }
+          }
+          // 6. MOVE TO CATEGORY
+          else if (action === 'move') {
+            const targetCatId = options?.categoryId || null;
+            await channel.setParent(targetCatId, { lockPermissions: false });
+            processedCount++;
+          }
+          // 7. HIDE
+          else if (action === 'hide') {
+            await channel.permissionOverwrites.edit(guild.roles.everyone, {
+              ViewChannel: false
+            });
+            processedCount++;
+          }
+          // 8. UNHIDE
+          else if (action === 'unhide') {
+            await channel.permissionOverwrites.edit(guild.roles.everyone, {
+              ViewChannel: null
+            });
+            processedCount++;
+          }
+        } catch (err) {
+          failedCount++;
+          errors.push({ channelName: channel.name, error: err.message });
+        }
+      }
+
+      // Add to server audit log
+      db.addServerLog(guildId, {
+        action: `BULK_CHANNEL_${(action || '').toUpperCase()}`,
+        userId: 'DASHBOARD_ADMIN',
+        details: `Bulk ${action} executed on ${processedCount} channels (${failedCount} failed).`,
+        color: config.defaultColor
+      });
+
+      res.json({
+        success: true,
+        message: `Bulk ${action} completed successfully on ${processedCount} channel(s)!`,
+        processedCount,
+        failedCount,
+        errors
+      });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // -------------------------------------------------------------
+  // API: TIKTOK NOTIFYME ENGINE
+  // -------------------------------------------------------------
+  app.get('/api/guild/:guildId/tiktok-trackers', (req, res) => {
+    try {
+      const { guildId } = req.params;
+      const trackers = db.getTikTokTrackers(guildId);
+      res.json(trackers);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post('/api/guild/:guildId/tiktok-tracker', (req, res) => {
+    try {
+      const { guildId } = req.params;
+      const {
+        id,
+        tiktokUsername,
+        channelId,
+        mentionRoleId,
+        customMessage,
+        notifyLive,
+        notifyVideo,
+        embedTitle,
+        embedColor,
+        banner,
+        enabled
+      } = req.body;
+
+      if (!tiktokUsername || !tiktokUsername.trim()) {
+        return res.status(400).json({ error: 'TikTok username handle is required.' });
+      }
+      if (!channelId) {
+        return res.status(400).json({ error: 'Please select a Discord channel for notifications.' });
+      }
+
+      const saved = db.saveTikTokTracker(guildId, id, {
+        tiktokUsername,
+        channelId,
+        mentionRoleId: mentionRoleId || null,
+        customMessage,
+        notifyLive: notifyLive !== false,
+        notifyVideo: notifyVideo !== false,
+        embedTitle,
+        embedColor: embedColor || '#FE2C55',
+        banner,
+        enabled: enabled !== false
+      });
+
+      res.json({ success: true, message: 'TikTok NotifyMe tracker saved successfully!', tracker: saved });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post('/api/guild/:guildId/tiktok-tracker/:id/test', async (req, res) => {
+    try {
+      const { guildId, id } = req.params;
+      await testTikTokNotification(client, guildId, id);
+      res.json({ success: true, message: 'Test TikTok notification dispatched to Discord!' });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post('/api/guild/:guildId/tiktok-tracker/:id/toggle', (req, res) => {
+    try {
+      const { guildId, id } = req.params;
+      const { enabled } = req.body;
+      const updated = db.toggleTikTokTracker(guildId, id, enabled);
+      if (!updated) return res.status(404).json({ error: 'TikTok tracker not found.' });
+
+      res.json({ success: true, message: `TikTok tracker ${updated.enabled ? 'enabled' : 'disabled'}.`, tracker: updated });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.delete('/api/guild/:guildId/tiktok-tracker/:id', (req, res) => {
+    try {
+      const { guildId, id } = req.params;
+      const deleted = db.deleteTikTokTracker(guildId, id);
+      if (!deleted) return res.status(404).json({ error: 'TikTok tracker not found.' });
+
+      res.json({ success: true, message: 'TikTok tracker deleted successfully.' });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
